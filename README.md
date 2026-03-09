@@ -1,55 +1,137 @@
 # AI Context System — Template
 
-A context file system that makes AI agents compound value across sessions instead of starting from zero every time.
+Most people use AI like a search engine with better grammar. They type a prompt, get an answer, and start over next time. Every session begins at zero.
 
-Built on the **C-I-M philosophy** (Context-Interaction-Memory): persistent context files teach the AI your preferences, tools, workflows, and language so each session builds on the last.
+This repo exists because there's a better way.
 
----
+## The Problem
+
+AI agents are stateless by default. They don't remember your preferences, your tools, your team, your writing voice, or the decisions you made last Tuesday. So you end up repeating yourself constantly, getting generic output, and spending more time correcting the AI than you would have spent doing the work yourself.
+
+The people getting real value from AI aren't writing better prompts. They're building persistent context that compounds across sessions.
 
 ## What This Is
 
-A set of `.md` files that sit alongside your AI agent (Claude, GPT, or any LLM with file access). They act as persistent memory and operating instructions. Instead of re-explaining your preferences, tools, and workflows every session, the agent reads these files and operates accordingly.
+A set of `.md` files that sit alongside your AI agent (Claude, GPT, or any LLM with file access). They act as operating instructions and persistent memory. Instead of re-explaining your preferences, tools, and workflows every session, the agent reads these files at startup and operates with full context from the first message.
 
-**What you get:**
-- Writing rules that eliminate AI-sounding output
-- Documentation standards with Mermaid diagram support
-- A sales qualification and pipeline management framework
-- Proposal generation workflow with a QC checklist
-- Credential management architecture (secrets never in plain text)
-- Email processing and triage workflow
-- SEO content workflow
-- Coding standards for .NET/C# projects
-- Task tracking and a glossary for your internal language
+This template was extracted from a production system used daily for sales proposals, pipeline management, email triage, code review, SEO content, and document creation at a real company. It's not theoretical — every file exists because a real workflow needed it.
+
+**What's included:**
+
+- **Writing rules** — a researched list of AI-identifiable words, phrases, and patterns that make output sound robotic. Ready to use immediately.
+- **Agent operating instructions** — how the AI should behave: ask before acting, build on what worked, research before responding, maintain statefulness.
+- **Documentation standards** — output formats, Mermaid diagram types, quality checklists, file naming conventions.
+- **Sales framework** — qualification methodology structure, pipeline hygiene rules, health scoring, and deal removal criteria.
+- **Proposal workflow** — customer-centric proposal structure, intake questions, CRM data collection, QC checklist.
+- **Credential management** — architecture pattern for keeping API secrets out of plain text files (encrypted bootstrap → cloud vault → session-scoped env vars).
+- **Email processing** — inbox triage categories, routing rules, and a confirm-before-moving protocol.
+- **SEO workflow** — keyword strategy, intent-first planning, and verification checklist.
+- **Coding standards** — layered architecture, DI patterns, error handling, testing targets, CI/CD pipeline requirements.
+- **Task tracking and glossary** — persistent task board and a decoder ring for your internal shorthand.
+
+---
+
+## The C-I-M Framework
+
+The system is built on three principles: **Context**, **Interaction**, and **Memory**.
+
+**Context** is the knowledge base. These files teach the agent who you are, how you work, what tools you use, and what standards you expect. Context compounds — every file you add makes the agent more useful. Context is the only part of an AI workflow that appreciates over time. Prompts depreciate the moment you send them.
+
+**Interaction** is the operating model. The agent asks targeted questions before starting (using selectable options, not text walls), integrates everything you share as foundational context, builds on outputs you've confirmed as good, and researches before responding when current information matters. The goal is zero context-switching for you — the agent handles the legwork and presents results.
+
+**Memory** is the persistence layer. A glossary that decodes your shorthand and tracks lessons learned. A task board that carries over between sessions. A changelog that lets the agent scan what's new since its last session. Memory is what turns isolated conversations into a compounding knowledge graph.
+
+Most people focus on prompts (the Interaction layer) and ignore Context and Memory entirely. That's why their output plateaus. This template gives you all three from day one.
+
+---
+
+## Best Practices for Building Your Context System
+
+These patterns come from months of daily production use. Follow them and you'll avoid the mistakes that cost the most time.
+
+### 1. Start with three files, not thirteen
+
+Don't try to fill in everything at once. Start with:
+
+1. **`CLAUDE.md`** — Your name, company, and the "How I Expect You to Work" section
+2. **`banned-writing-styles.md`** — Use it as-is on day one. It works immediately.
+3. **`memory/glossary.md`** — Add your team members and the acronyms you use daily
+
+Everything else can wait until you actually need it. The sales framework matters when you're doing sales work. The coding standards matter when you're writing code. Don't front-load setup for workflows you won't touch this week.
+
+### 2. Separate public frameworks from private data
+
+This repo is the public half — frameworks, standards, and process templates. Your private data (API credentials, customer names, CRM configs, proprietary methodology, pricing, team details) lives in a separate private repo or folder.
+
+The `PRIVATE-FILES.md` file documents exactly which files should stay private and which ones have a public template counterpart. The split matters because you want to update frameworks without exposing business data, and share useful patterns without leaking credentials.
+
+### 3. Use dependency chains, not a flat file list
+
+Not every task needs every context file. Loading thirteen files when you only need two wastes token budget and dilutes the agent's focus. The `CLAUDE.md` template includes a workflow dependency chain table:
+
+| Workflow | Files to Load (in order) |
+|----------|--------------------------|
+| Casual conversation | `banned-writing-styles.md` only |
+| Proposal creation | `security-practices.md` → `[crm]-api.md` → `proposal-generation.md` → `best-practices-creation.md` → `banned-writing-styles.md` |
+| Code work | `coding-best-practices.md` → `security-practices.md` |
+
+This tells the agent exactly what to read and in what order. Lightweight tasks stay fast. Complex tasks get full context.
+
+### 4. Never duplicate content across files
+
+When the same information appears in multiple files, it drifts. One file gets updated, the others don't, and the agent gets contradictory instructions. Instead, use cross-references: "See `security-practices.md` for the full credential architecture." One source of truth per topic.
+
+### 5. Make the agent ask before acting
+
+The single biggest quality improvement isn't a better prompt — it's a rule that says "ask 1-3 clarifying questions before starting any non-trivial task." This is baked into `working-style.md` and `CLAUDE.md`. It catches wrong assumptions before they become wrong outputs.
+
+The key detail: the agent should present questions as selectable options, not plain text. Clicking a choice takes two seconds. Typing a correction after a wrong first draft takes ten minutes.
+
+### 6. Track what works, ban what doesn't
+
+The `banned-writing-styles.md` file is a living document. When the agent produces a phrase that sounds robotic, add it to the ban list. When a format works well, note it in the relevant context file. Over time, your context system converges on output that sounds like you wrote it — because the ban list is shaped by your taste, not a generic style guide.
+
+### 7. Log lessons in the glossary
+
+The glossary isn't just a decoder ring. It has a Lessons Learned section where you record patterns: "LESSON: Deals stall when Impact is unquantified. RULE: Never leave a discovery call without at least one number attached to the problem." The agent reads this at session start. Mistakes made once don't repeat.
+
+### 8. Push context to version control
+
+These files should be in a Git repo (private for your actual data, public for the template). Version control gives you history, rollback, and the ability to sync across machines. The `CLAUDE.md` template includes a session-start sync sequence that pulls latest context from GitHub before the agent does anything else.
+
+### 9. Internal deliverables stay lightweight
+
+Plans, analysis, audit findings, and anything between you and the AI should be inline chat or `.md` files. Don't generate a formatted `.docx` for something only you will read. Reserve polished documents for external audiences — clients, staff, board members. This saves time and keeps the feedback loop tight.
+
+### 10. End with a next step, not a summary
+
+Every context file and every agent interaction should point forward. "Here's what we could do next" beats "Here's what we just discussed." This is built into the writing rules and the working-style instructions. Summaries are for reports. Conversations should move.
 
 ---
 
 ## Quick Start
 
-### 1. Copy the template
+### 1. Clone the template
 
 ```bash
-git clone https://github.com/[your-username]/ai-context-template.git
+git clone https://github.com/asteedtips/ai-context-template.git
 ```
 
-Or download the ZIP and extract it into your AI agent's working directory (e.g., `ClaudeCowork/`).
+Or download the ZIP and drop it into your AI agent's working directory.
 
-### 2. Fill in your details
+### 2. Fill in the first three files
 
-Every file uses `<!-- CUSTOMIZE -->` comment blocks to mark sections you need to fill in. Start with these three:
+Every file uses `<!-- CUSTOMIZE -->` HTML comment blocks to mark sections you need to fill in. Start with `CLAUDE.md`, `about-me.md`, and `memory/glossary.md`.
 
-1. **`CLAUDE.md`** — Your name, company, workflow chains, and credential setup
-2. **`Claude Context/about-me.md`** — Your professional and personal context
-3. **`memory/glossary.md`** — Your team members, acronyms, and internal language
+### 3. Set up credentials (when you need API access)
 
-### 3. Set up credentials (optional but recommended)
+Follow the architecture in `security-practices.md`. Copy `api-template.md` for each service. Store secrets in a vault, never in plain text.
 
-If you use APIs (CRM, email, file storage), follow the architecture in `Claude Context/security-practices.md` and create API-specific files using `Claude Context/api-template.md` as a starting point.
+### 4. Point your agent at CLAUDE.md
 
-### 4. Point your AI agent at CLAUDE.md
+**Claude Desktop / Cowork:** Place `CLAUDE.md` at the root of your selected folder or in `.claude/CLAUDE.md`.
 
-In Claude Desktop / Cowork: place `CLAUDE.md` at the root of your working folder or in `.claude/CLAUDE.md`.
-
-In other tools: reference the file path in your system prompt or session initialization.
+**Other LLMs with file access:** Reference the file path in your system prompt or session initialization.
 
 ---
 
@@ -61,6 +143,7 @@ ai-context-template/
 ├── TASKS.md                           ← Active task tracking
 ├── CHANGELOG.md                       ← Track context file changes
 ├── PRIVATE-FILES.md                   ← Guide for splitting public/private
+├── LICENSE                            ← MIT
 ├── README.md                          ← This file
 │
 ├── Claude Context/
@@ -80,78 +163,32 @@ ai-context-template/
     └── glossary.md                    ← People, acronyms, lessons learned
 ```
 
-### File Status
+### Readiness Levels
 
-| Status | Files |
-|--------|-------|
-| **Ready to use** (no customization needed) | `banned-writing-styles.md`, `working-style.md`, `seo-style.md` |
-| **Light customization** (fill in a few sections) | `CLAUDE.md`, `best-practices-creation.md`, `CHANGELOG.md`, `TASKS.md` |
-| **Full customization** (build your own content) | `about-me.md`, `glossary.md`, `security-practices.md`, `sales-framework.md`, `proposal-generation.md`, `email-processing.md`, `coding-best-practices.md` |
-| **Copy per integration** | `api-template.md` → one copy per API service |
-
----
-
-## The C-I-M Philosophy
-
-**Context** compounds. Prompts depreciate.
-
-A well-maintained context file system means your AI agent gets smarter every session. A bare prompt starts from zero every time.
-
-- **Context**: Persistent files that teach the agent your world (these files)
-- **Interaction**: The agent asks before acting, integrates what you share, and builds on what worked
-- **Memory**: Glossary, task tracking, lessons learned, and changelog keep knowledge across sessions
-
-### Core Agent Behaviors (defined in working-style.md)
-
-1. **Ask before acting** — Clarify with selectable questions, not text dumps
-2. **Build on what worked** — Reuse confirmed formats and approaches
-3. **Integrate provided information** — Everything shared becomes foundational
-4. **Research before responding** — Web search for current info, live API data for business context
-5. **Maintain statefulness** — Reference prior agreements and decisions naturally
-6. **Use tools judiciously** — Only when they add value over what's already in context
-
----
-
-## Public vs. Private Split
-
-This template is designed to be shareable. Your private data lives in a separate repo (or folder) that the agent also reads.
-
-**Public repo** (this template): frameworks, standards, writing rules, process templates
-**Private repo** (your own): filled-in API configs, credential scripts, people/glossary, proprietary sales methodology, company-specific data
-
-See `PRIVATE-FILES.md` for a detailed guide on what stays private and what has a public counterpart.
+| Ready to use (zero changes needed) | `banned-writing-styles.md`, `working-style.md`, `seo-style.md` |
+|---|---|
+| **Light customization** | `CLAUDE.md`, `best-practices-creation.md`, `CHANGELOG.md`, `TASKS.md` |
+| **Build your own content** | `about-me.md`, `glossary.md`, `security-practices.md`, `sales-framework.md`, `proposal-generation.md`, `email-processing.md`, `coding-best-practices.md` |
+| **Copy per API integration** | `api-template.md` → duplicate and rename for each service |
 
 ---
 
 ## Extending the System
 
-### Adding a new API integration
-1. Copy `Claude Context/api-template.md` to `Claude Context/[service]-api.md`
-2. Fill in the auth, endpoints, and behavior rules
-3. Add the file to the workflow dependency chains in `CLAUDE.md`
-4. Store credentials in your secret store per `security-practices.md`
+**New API integration:** Copy `api-template.md` → fill in auth, endpoints, and behavior rules → add to `CLAUDE.md` dependency chains → store secrets per `security-practices.md`.
 
-### Adding a new workflow
-1. Create a new `.md` file in `Claude Context/`
-2. Add it to the context file table in `CLAUDE.md`
-3. Add a workflow dependency chain if it requires multiple files
-4. Log the addition in `CHANGELOG.md`
+**New workflow:** Create a `.md` in `Claude Context/` → add to the context file table in `CLAUDE.md` → add a dependency chain if it needs multiple files → log in `CHANGELOG.md`.
 
-### Updating writing rules
-1. Propose changes (additions or removals) before modifying `banned-writing-styles.md`
-2. Include the source or reasoning for new bans
-3. Review quarterly — some AI tells fade as models evolve
+**New writing rules:** Propose additions or removals before editing `banned-writing-styles.md`. Include the reasoning. Review quarterly — AI tells evolve as models change.
 
 ---
 
 ## Credits
 
-Built by Albert Steed ([@AlbertSteed3](https://x.com/AlbertSteed3)) at [True IP Solutions](https://trueipsolutions.com).
+Built by [Albert Steed](https://www.linkedin.com/in/albertsteed/) at [True IP Solutions](https://trueipsolutions.com). Developed through daily production use with Claude (Anthropic) across sales, proposals, email management, code review, and documentation.
 
-Developed through daily use with Claude (Anthropic) across sales, proposals, email management, code review, and documentation workflows.
-
----
+The system started as a handful of notes and grew into 17 interconnected context files that run a real business. This template is the distilled, shareable version.
 
 ## License
 
-MIT — use it, modify it, share it. If it helps you work better with AI, that's the point.
+MIT — use it, fork it, modify it, share it. If it helps you get more out of AI, that's the point.
