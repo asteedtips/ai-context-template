@@ -65,21 +65,61 @@ Session-scoped env vars (chmod 600)
 
 ---
 
+## Access Tiers
+
+When multiple people or agents use the same vault, tag each secret with an access tier so you can control who sees what. The unlock script filters by tier, and your vault's RBAC enforces it at the infrastructure level.
+
+<!--
+  CUSTOMIZE: Define your own tiers based on team structure.
+  The example below is a starting point — adjust names and inheritance to fit your org.
+-->
+
+| Tier | Who gets it | What it includes |
+|---|---|---|
+| `ro` | Team members with read-only agents | Read-only API credentials + shared config |
+| `rw` | Team members who need to create/update records | Read-write API credentials + shared config |
+| `adm` | Admin only | PATs, org-level tokens, plus everything in rw + shared |
+| `shared` | All tiers | Config values needed by everyone (org IDs, tenant IDs) |
+| `app` | Application infrastructure only | DB connection strings, not pulled by agent sessions |
+
+Tier inheritance: `ro` gets `ro + shared`. `rw` gets `rw + shared`. `adm` gets `adm + rw + shared`.
+
+---
+
+## Enforcement Layers
+
+Each tier should be enforced at multiple independent levels. Even if one layer is misconfigured, the others still block unauthorized access.
+
+| Layer | What it does |
+|---|---|
+| Vault RBAC | Per-secret role assignments on each service principal — the agent's identity can only read its assigned secrets |
+| API scopes/permissions | Service-level OAuth scopes — a read-only credential physically cannot write, even if the agent tries |
+| Software (`--tier` flag) | The unlock script filters secrets before loading — skips anything outside the agent's tier |
+
+The combination of all three means a read-only agent can't accidentally (or intentionally) write data through any path.
+
+---
+
 ## Naming Convention
 
-Use a consistent naming pattern for secrets. When pulled into env vars, convert to uppercase with underscores.
+Use a consistent naming pattern for secrets. Add a **tier suffix** so the same service can have different credentials for different access levels. The unlock script strips the tier suffix when creating env var names, so downstream code works without changes.
 
-| In Secret Store | As Env Var |
-|---|---|
-| `service-client-id` | `SERVICE_CLIENT_ID` |
-| `service-client-secret` | `SERVICE_CLIENT_SECRET` |
-| `service-refresh-token` | `SERVICE_REFRESH_TOKEN` |
+**Pattern:** `{service}-{descriptor}-{tier}`
+
+| In Secret Store | Tier | As Env Var |
+|---|---|---|
+| `service-client-id-rw` | rw | `SERVICE_CLIENT_ID` |
+| `service-client-secret-rw` | rw | `SERVICE_CLIENT_SECRET` |
+| `service-client-id-ro` | ro | `SERVICE_CLIENT_ID` |
+| `service-org-id` | shared | `SERVICE_ORG_ID` |
+
+An `ro` agent and an `rw` agent both see `SERVICE_CLIENT_ID` as their env var, but the underlying credential has different permissions at the API provider level. Code doesn't change; only the permissions do.
 
 <!--
   CUSTOMIZE: Add your actual secret names here once configured.
   Example:
-  | `mycrm-client-id` | `MYCRM_CLIENT_ID` |
-  | `email-client-id` | `EMAIL_CLIENT_ID` |
+  | `mycrm-client-id-rw` | rw | `MYCRM_CLIENT_ID` |
+  | `email-client-id-ro` | ro | `EMAIL_CLIENT_ID` |
 -->
 
 ---
@@ -156,6 +196,34 @@ When rotating a credential (expired token, compromised secret, etc.):
 
 ---
 
+## Team Onboarding — Bootstrap File Setup
+
+Each team member receives a pre-encrypted bootstrap file containing only the service principal credentials for their assigned tier. The file is decrypted at session start using a passphrase, which authenticates to the vault and pulls that tier's secrets.
+
+**What each person needs from the admin:**
+
+1. A bootstrap `.enc` file for their assigned tier (ro or rw)
+2. A passphrase to decrypt it
+
+**Distribute these two pieces through separate channels** so a single compromised channel doesn't expose both. For example, send the `.enc` file via a company messaging app and the passphrase via phone call or in person.
+
+<!--
+  CUSTOMIZE: Document your specific file paths and unlock commands here.
+  Example:
+  1. Place the `.enc` file at `ClaudeCowork/Claude Context/keys.enc`
+  2. Place the passphrase in `ClaudeCowork/keys/.vault_key`
+  3. Run `python3 key_helper.py unlock --tier ro`
+-->
+
+**Revoking access:**
+
+1. Rotate the service principal's client secret in your identity provider
+2. Update the secret value in the vault
+3. Regenerate the `.enc` file for that tier and redistribute to remaining authorized users
+4. The revoked user's `.enc` file now contains a stale client secret that won't authenticate
+
+---
+
 ## What Never Goes in a File
 
 - Actual token or secret values
@@ -167,4 +235,4 @@ If you're unsure whether something is sensitive, put it in the vault. The cost o
 
 ---
 
-*Last updated: [DATE]*
+*Last updated: [DATE] — Added access tiers, enforcement layers, tier naming convention, and team onboarding*
