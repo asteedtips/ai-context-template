@@ -81,29 +81,35 @@ This tells the agent exactly what to read and in what order. Lightweight tasks s
 
 When the same information appears in multiple files, it drifts. One file gets updated, the others don't, and the agent gets contradictory instructions. Instead, use cross-references: "See `security-practices.md` for the full credential architecture." One source of truth per topic.
 
-### 5. Make the agent ask before acting
+### 5. Gate the session — declare the workflow before starting work
+
+The `CLAUDE.md` template includes a **Session Gate** at the top of the file. After sync, the agent must identify which workflow matches the current task, state the matched workflow and the files it's loading, and only then begin work. If the match is ambiguous, the agent pauses and asks before proceeding.
+
+This prevents the most common failure mode: the agent pattern-matches to a workflow too quickly, loads the wrong context files, and delivers output that misses the mark. The gate adds roughly five seconds of declaration time and saves entire rounds of rework.
+
+### 6. Make the agent ask before acting
 
 The single biggest quality improvement isn't a better prompt — it's a rule that says "ask 1-3 clarifying questions before starting any non-trivial task." This is baked into `working-style.md` and `CLAUDE.md`. It catches wrong assumptions before they become wrong outputs.
 
 The key detail: the agent should present questions as selectable options, not plain text. Clicking a choice takes two seconds. Typing a correction after a wrong first draft takes ten minutes.
 
-### 6. Track what works, ban what doesn't
+### 7. Track what works, ban what doesn't
 
 The `banned-writing-styles.md` file is a living document. When the agent produces a phrase that sounds robotic, add it to the ban list. When a format works well, note it in the relevant context file. Over time, your context system converges on output that sounds like you wrote it — because the ban list is shaped by your taste, not a generic style guide.
 
-### 7. Log lessons in the glossary
+### 8. Log lessons in the glossary
 
 The glossary isn't just a decoder ring. It has a Lessons Learned section where you record patterns: "LESSON: Deals stall when Impact is unquantified. RULE: Never leave a discovery call without at least one number attached to the problem." The agent reads this at session start. Mistakes made once don't repeat.
 
-### 8. Push context to version control
+### 9. Push context to version control
 
 These files should be in a Git repo (private for your actual data, public for the template). Version control gives you history, rollback, and the ability to sync across machines. The `CLAUDE.md` template includes a session-start sync sequence that pulls latest context from GitHub before the agent does anything else.
 
-### 9. Internal deliverables stay lightweight
+### 10. Internal deliverables stay lightweight
 
 Plans, analysis, audit findings, and anything between you and the AI should be inline chat or `.md` files. Don't generate a formatted `.docx` for something only you will read. Reserve polished documents for external audiences — clients, staff, board members. This saves time and keeps the feedback loop tight.
 
-### 10. End with a next step, not a summary
+### 11. End with a next step, not a summary
 
 Every context file and every agent interaction should point forward. "Here's what we could do next" beats "Here's what we just discussed." This is built into the writing rules and the working-style instructions. Summaries are for reports. Conversations should move.
 
