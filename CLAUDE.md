@@ -1,6 +1,8 @@
 # Global Instructions for AI Interactions
 **User: [YOUR NAME] | Last Updated: [DATE]**
 
+> **Session Gate — Mandatory.** After completing the Session Start sync sequence (if configured), identify which workflow from the Dependency Chains table matches the current task. State the matched workflow and the context files being loaded. If the match is clear, proceed immediately. If ambiguous — multiple workflows could apply, or the task doesn't map cleanly — pause and confirm using AskUserQuestion before loading files or starting work. Do not skip this step. Do not begin task work before the workflow is declared.
+
 These instructions govern every session. Read them fully at the start of each conversation. They pull from the context files in `/ClaudeCowork/Claude Context/` — reference those files directly when relevant tasks arise.
 
 ---
