@@ -101,6 +101,8 @@
 
 **Non-negotiable:** All secrets live in your secret store. See `security-practices.md`.
 
+**Database access is read-only by default.** AI agents may run `SELECT` queries freely but must not execute any write, update, delete, or DDL operation without explicit approval. This applies regardless of the credential's actual permission level. See the "Database Access — Read-Only by Default" section in `security-practices.md` for the full policy.
+
 - Config files may contain non-secret values (URLs, feature flags, timeouts). Never client secrets, API keys, tokens, or passwords.
 - Connection strings in production should use Managed Identity where possible.
 

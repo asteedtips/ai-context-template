@@ -224,6 +224,44 @@ Each team member receives a pre-encrypted bootstrap file containing only the ser
 
 ---
 
+## Database Access — Read-Only by Default
+
+All database connections used by AI agents operate under a **read-only policy**. This applies to any database accessed during a session — SQL Server, PostgreSQL, MySQL, Cosmos DB, or any other data store.
+
+<!--
+  This section is NOT optional. It protects production data from accidental writes.
+  Customize the approver name/role but keep the policy intact.
+-->
+
+**The rule:** The agent may execute `SELECT` queries and read data freely. Any operation that would alter or delete data requires explicit approval from the designated approver before execution. There are no exceptions.
+
+**Operations that require explicit approval:**
+- `INSERT`, `UPDATE`, `DELETE`, `MERGE`
+- `TRUNCATE TABLE`, `DROP TABLE`, `ALTER TABLE`
+- `CREATE`, `ALTER`, or `DROP` on any database object (tables, views, stored procedures, indexes, schemas)
+- `EXEC` or `EXECUTE` on any stored procedure (unless the approver has confirmed it is read-only)
+- Any transaction that wraps a write operation
+- Bulk copy / `bcp` / data import operations
+
+**Operations that are always permitted:**
+- `SELECT` (including JOINs, CTEs, subqueries, aggregations, window functions)
+- `INFORMATION_SCHEMA` and `sys.*` catalog queries (or equivalent for your database engine)
+- `EXPLAIN` / execution plan analysis
+- Temporary tables created within the session for query analysis — these do not persist
+- `SET` statements that affect session behavior (e.g., `SET NOCOUNT ON`)
+
+**How to request write access:** If a task requires modifying data (data migrations, cleanup scripts, schema changes), the agent will draft the SQL, present it for review, and wait for explicit approval before executing. The approver may also pre-approve a category of writes at the start of a task (e.g., "you can insert rows into the staging table").
+
+**This policy applies regardless of the credential's actual permissions.** Even when connecting with an admin-level account, the agent treats the connection as read-only unless told otherwise.
+
+<!--
+  CUSTOMIZE: Replace "designated approver" with the actual person or role.
+  Example: "requires explicit approval from the team lead"
+  Example: "requires explicit approval from Albert"
+-->
+
+---
+
 ## What Never Goes in a File
 
 - Actual token or secret values
