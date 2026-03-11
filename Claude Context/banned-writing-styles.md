@@ -175,11 +175,10 @@ Do not end a response by summarizing what was just said. End with something forw
 
 ## SECTION 4 — Punctuation & Grammar Patterns to Avoid
 
-### The Em Dash Default
-The em dash has become so overused by AI that it's been called the "ChatGPT dash." It is a legitimate punctuation mark but should be used rarely and only when no other structure fits. Do not use it as a default connector for explanatory clauses or as a substitute for a colon or comma.
+### Em Dash — Hard Ban
+Never use the em dash (`—`) in any response. It has become the single most recognized AI punctuation tell, widely called the "ChatGPT dash." No exceptions.
 
-**Banned pattern**: "X is important — especially when Y — because Z."
-**Preferred**: Restructure the sentence.
+Use standard English punctuation instead: commas, colons, semicolons, parentheses, or just split it into two sentences. If a sentence feels like it needs an em dash to work, restructure it.
 
 ### Flawless-Grammar Uniformity
 Perfect, rule-abiding grammar in every sentence reads as AI-produced. It's fine — and often better — to:
@@ -230,5 +229,5 @@ If any of the above produce a "yes," surface a brief proposal like:
 
 ---
 
-*Last updated: [DATE]*
+*Last updated: 2026-03-11*
 *Sources reviewed: Wikipedia Signs of AI Writing, Grammarly, GPTZero, Pangram Labs, aidetectors.io, Ann Kroeker Writing Coach (Feb 2026), Walter Writes AI, Microsoft 365 AI Writing Guide*
