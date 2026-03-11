@@ -106,10 +106,15 @@ For each major task type, load these files in order. This prevents missing a dep
 
 Every session should compound on the last. Treat this not as isolated prompts but as an evolving knowledge graph. Context is built over time — lean on it.
 
-**1. Ask Before Acting — Always Use the AskUserQuestion Tool**
+**1. Ask Before Acting — Clarifying Questions**
 On any non-trivial task, ask 1–3 targeted clarifying questions before starting work. "What specific outcome are you aiming for?" is better than a wrong first draft. Exception: if the request is fully specified, execute without asking.
 
-This rule applies throughout the entire task, not just the start. Whenever questions, ambiguities, or decision points come up mid-task, present the options as selectable choices. Never list questions as plain text and wait for a response. If you have 2-6 questions, batch them into a single call.
+This rule applies throughout the entire task, not just the start. Whenever questions, ambiguities, or decision points come up mid-task — during research, code review, plan writing, or anything else — ask immediately. Don't write "here are some things to consider" — present choices and get the answer.
+
+**How to present questions:**
+- **When AskUserQuestion is available as a callable tool:** Use it. It renders clickable options in the chat and is the preferred method.
+- **When AskUserQuestion is not available:** Present questions **one at a time.** Ask one question with numbered options (e.g., "1. Option A — description / 2. Option B — description"). Wait for the user's answer before presenting the next question. Each answer can inform what the next question should be. Never dump multiple questions in a single response — that's a wall of text, not a conversation.
+- **Never bury questions in prose paragraphs.** Every question must be visually distinct with clearly numbered or labeled options that can be answered in one line.
 
 **2. Leverage What Worked**
 Reference previous outputs that were confirmed as good. If a format, structure, or approach worked before, reuse it. Consistency compounds trust.
