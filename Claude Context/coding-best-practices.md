@@ -80,7 +80,63 @@
 
 ---
 
-## 3. Database Standards
+## 3. Configuration & Settings Standards
+
+<!--
+  CUSTOMIZE: Define your centralized configuration pattern. The goal is ONE way to access
+  configuration across your entire solution — no per-feature IOptions<T>, no IConfiguration
+  injection in services, no standalone settings POCOs with services.Configure<T>().
+
+  Key decisions to document:
+  - Where config is stored (Azure App Configuration, appsettings.json, AWS Parameter Store, etc.)
+  - How it's bound to code (single POCO tree, IOptions, custom service wrapper)
+  - The hierarchy for organizing settings (by feature, by environment, by provider)
+  - How secrets integrate (Key Vault references, environment variables, etc.)
+  - How Azure Functions / background workers access the same config as the main app
+  - The process for adding new configuration (what to create, where, and how to test)
+
+  Example architecture:
+  ```
+  Config Store (e.g., Azure App Configuration)
+    ↓ bound at startup
+  Strongly-typed POCO tree (e.g., SettingsConfiguration)
+    ↓ wrapped by
+  SettingsService (scoped DI service)
+    ↓ injected into
+  Feature services (via constructor injection)
+  ```
+
+  Example hierarchy:
+  ```
+  SettingsConfiguration
+  ├── App                    ← Feature-specific operational config (timeouts, batch sizes)
+  │   ├── AppProvider        ← External vendor integrations used by one feature
+  │   └── (feature classes)  ← Operational knobs per feature
+  ├── Shared                 ← Shared infrastructure and cross-feature vendor config
+  │   └── SharedProvider     ← Vendor integrations used by multiple features
+  └── ActiveEnvironment      ← Environment discriminator
+  ```
+
+  Example service injection:
+  ```csharp
+  public partial class ExampleService(
+      SettingsService settingsService,
+      LogService logService) : BaseService(logService)
+  {
+      private readonly string ApiUrl = settingsService.Settings.App.AppProvider.Example.ApiUrl;
+  }
+  ```
+
+  Rules to enforce:
+  - Services extract settings into private readonly fields at construction time
+  - Never inject IConfiguration or IOptions<T> directly into feature services
+  - All Azure Functions call the same settings initialization as the main app
+  - New config = new POCO property + new config store key + integration test validation
+-->
+
+---
+
+## 4. Database Standards
 
 <!--
   CUSTOMIZE: Define your database access patterns.
@@ -95,7 +151,7 @@
 
 ---
 
-## 4. Security Standards
+## 5. Security Standards
 
 ### Secrets Management
 
@@ -120,7 +176,7 @@
 
 ---
 
-## 5. Testing Standards
+## 6. Testing Standards
 
 ### Coverage Target
 
@@ -141,7 +197,7 @@
 
 ---
 
-## 6. API Design Standards
+## 7. API Design Standards
 
 <!--
   CUSTOMIZE: Define your REST API conventions if applicable.
@@ -156,7 +212,7 @@
 
 ---
 
-## 7. CI/CD Standards
+## 8. CI/CD Standards
 
 <!--
   CUSTOMIZE: Define your build/deploy pipeline requirements.
@@ -175,7 +231,7 @@
 
 ---
 
-## 8. Performance & Reliability
+## 9. Performance & Reliability
 
 - Batch database calls — no N+1 query patterns (loops with `await` calls)
 - Use HTTP client retry policies (Polly or built-in) for external API calls
@@ -184,7 +240,7 @@
 
 ---
 
-## 9. Known Gaps — Tracked Issues
+## 10. Known Gaps — Tracked Issues
 
 <!--
   CUSTOMIZE: Track known issues in your codebase here.
@@ -200,7 +256,7 @@
 
 ---
 
-## 10. Patterns to Preserve
+## 11. Patterns to Preserve
 
 <!--
   CUSTOMIZE: Document patterns that are already working well.
