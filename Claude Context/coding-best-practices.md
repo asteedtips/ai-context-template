@@ -149,6 +149,32 @@
   - Schema organization
 -->
 
+### 4.1 SSDT-First Schema Management (Optional Pattern for SQL Server Projects)
+
+<!-- CUSTOMIZE: If your project uses SQL Server with SSDT (SQL Server Data Tools), adopt this pattern for new bounded contexts. Remove this section if you use a different database or prefer ORM-managed migrations. -->
+
+If your project uses SQL Server, consider making the SSDT project the single source of truth for database schema. New bounded contexts define their schema in SSDT `.sql` files. An ORM reverse-engineering tool (e.g., EF Core Power Tools) generates entity classes from the published database.
+
+**Workflow:**
+1. Define tables, sequences, and seed scripts as `.sql` files in the SSDT project.
+2. Register folder entries in the `.sqlproj` file.
+3. Add seed script references to `Script.PostDeployment.sql`.
+4. Publish the SSDT project to the target database.
+5. Reverse-engineer entity classes from the published schema.
+6. No ORM migration files — SSDT owns the schema lifecycle.
+
+**Recommended conventions:**
+
+<!-- CUSTOMIZE: Adjust these conventions to match your team's standards. The items below are a starting point. -->
+
+- **Primary keys:** `INT` backed by sequences. Default constraint wires the PK to the sequence.
+- **Uid column:** `UNIQUEIDENTIFIER` with `DEFAULT (NEWID())` and a unique index on every table.
+- **Audit columns:** `ModifyUser`, `ModifyDate`, `CreateUser`, `CreateDate` on every table.
+- **System versioning:** Temporal tables (`SYSTEM_VERSIONING = ON`) with `*Hist` history tables.
+- **Constraint naming:** Consistent prefixes — `DF_` for defaults, `PK_` for primary keys, `FK_` for foreign keys, `CK_` for check constraints.
+- **Lookup tables:** Status/type enums become SQL lookup tables seeded via `MERGE` scripts.
+- **Soft delete:** `IsDeleted BIT NOT NULL DEFAULT 0` on every table.
+
 ---
 
 ## 5. Security Standards
