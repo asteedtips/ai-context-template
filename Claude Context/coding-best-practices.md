@@ -155,13 +155,13 @@
 
 If your project uses SQL Server, consider making the SSDT project the single source of truth for database schema. New bounded contexts define their schema in SSDT `.sql` files. An ORM reverse-engineering tool (e.g., EF Core Power Tools) generates entity classes from the published database.
 
-**Workflow:**
+**The gated workflow:**
 1. Define tables, sequences, and seed scripts as `.sql` files in the SSDT project.
 2. Register folder entries in the `.sqlproj` file.
 3. Add seed script references to `Script.PostDeployment.sql`.
 4. Publish the SSDT project to the target database.
-5. Reverse-engineer entity classes from the published schema.
-6. No ORM migration files — SSDT owns the schema lifecycle.
+5. **Reverse-engineer entity classes** from the published schema. This step is a gated dependency in the phase plan; call it out as its own line item so it doesn't get skipped. See `project-scoping-bp.md` Section 8.
+6. Delete any hand-written entities or ORM migration files. SSDT owns the schema; the reverse-engineer tool owns entity generation. No dual sources.
 
 **Recommended conventions:**
 
@@ -221,6 +221,12 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 - Test isolation: No dependency on external services, execution order, or shared mutable state.
 - Test naming: `{MethodName}_{Scenario}_{ExpectedResult}`
 
+### API Contract Tests (External API Wrappers)
+
+When a service wraps an external API, unit tests must verify the shape of the outgoing HTTP request, not just that a call was made. Assert on the URL path, query parameters, HTTP method, and request body structure in the mock handler.
+
+A mock that only confirms "an HTTP call happened" will pass even when the wrong parameter is sent. The bug only surfaces in integration tests or production. Contract tests that assert on request shape catch these mismatches immediately.
+
 ---
 
 ## 7. API Design Standards
@@ -254,6 +260,19 @@ If your project uses SQL Server, consider making the SSDT project the single sou
   - Feature branches: `feature/{description}`
   - PRs require approval and passing checks
 -->
+
+### UI Mockup Conformance (When Mockups Exist)
+
+<!-- CUSTOMIZE: Remove this section if your projects don't use HTML mockups for UI validation. -->
+
+When a project has approved HTML mockups (per `project-scoping-bp.md` Section 5), every UI component must be built side-by-side against its mockup and verified before marking the component as done. This is a gated step.
+
+**Per-component process:**
+
+1. Open the approved mockup before writing any UI code. The mockup is the spec.
+2. After building the component, do a visual element-by-element comparison. Check: all data columns, stat cards, action buttons, conditional states (empty, loading, error), pagination, search/filter/export controls.
+3. Document any gaps. A gap means the component is not done.
+4. Fix all gaps before marking the component complete.
 
 ---
 
@@ -323,4 +342,4 @@ When the AI agent has access to build tools locally, it must build and run tests
 ---
 
 *Read this file before writing, reviewing, or modifying any code. For security guidance, see `security-practices.md`. For documentation formatting, see `best-practices-creation.md`.*
-*Last updated: 2026-03-12 — Added Section 9.4 (Local Build Verification Gate)*
+*Last updated: 2026-03-13 — SSDT gated workflow (reverse-engineer step), API Contract Tests, UI Mockup Conformance gate*
