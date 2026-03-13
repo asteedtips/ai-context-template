@@ -37,6 +37,34 @@ These instructions govern every session. Read them fully at the start of each co
 
 ---
 
+## Session Start — Housekeeping
+
+<!--
+  CUSTOMIZE: Add your own session start steps here — credential loading, context sync,
+  repo pulls, etc. The VM maintenance step below applies to anyone using Cowork mode.
+-->
+
+**VM disk cleanup (Cowork users).** The Cowork VM has a 10 GB root volume that fills up from pip packages, temp files, and caches across sessions. Run this early in each session — before pulling repos or installing packages:
+
+```bash
+# Check disk usage — only clean if above 70%
+USAGE=$(df / --output=pcent | tail -1 | tr -dc '0-9')
+if [ "$USAGE" -gt 70 ]; then
+  echo "Disk at ${USAGE}% — running cleanup..."
+  pip cache purge 2>/dev/null
+  rm -rf /tmp/*-tmp /tmp/*-push /tmp/node-compile-cache 2>/dev/null
+  apt-get clean 2>/dev/null
+  rm -rf /root/.cache/pip 2>/dev/null
+  echo "Disk now at $(df / --output=pcent | tail -1 | tr -dc '0-9')%"
+else
+  echo "Disk at ${USAGE}% — no cleanup needed."
+fi
+```
+
+The 70% threshold is a good default. Adjust if your workflow installs heavier dependencies (OpenCV, ffmpeg, ML libraries, etc.).
+
+---
+
 ## Workflow Dependency Chains — Which Files to Load
 
 For each major task type, load these files in order. This prevents missing a dependency mid-task.
