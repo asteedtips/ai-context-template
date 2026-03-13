@@ -22,9 +22,13 @@ Any file that contains one or more of these belongs in your private repo, not th
 - **Filled-in about-me** — your actual bio, company details, and personal information
 - **Filled-in glossary** — your real team shorthand, acronyms, and lessons learned
 - **Proprietary methodology** — if your sales qualification framework, pricing strategy, or win-rate data is a competitive advantage, the detailed version stays private
-- **Project-specific files** — repo sync configs, collab repo paths, project file structures
+- **Source control repo tables** — your actual repo names, org structure, PAT names, and branch conventions (the template in `coding/source-control.md` has the pattern; your private version has the real data)
+- **Project-specific files** — scoping docs, project plans, architecture references for active codebases
+- **Team context files** — team project prompts, role-specific instructions, org-specific operations guides
 - **Scheduled task definitions** — your specific automated workflows and their prompts
-- **Sync scripts** — any scripts that pull/push context files to your private repos
+- **Sync scripts** — any scripts that pull/push context files to your private repos (helper scripts, context_sync, etc.)
+- **Migration playbooks** — internal migration guides between specific tools or platforms
+- **Session logs** — `memory/Tasks/*.md` files contain session-specific work details
 
 ---
 
@@ -39,14 +43,46 @@ When you update a private file, ask yourself: "Did I change the structure or jus
 | Public Template | Your Private Version |
 |----------------|---------------------|
 | `CLAUDE.md` (with placeholder workflow chains) | `CLAUDE.md` (with your real API files, company name, credential setup) |
-| `api-template.md` (generic OAuth pattern) | `[your-crm]-api.md`, `[your-email]-api.md` (filled-in per service) |
-| `sales-framework.md` (structure only) | `sales-framework.md` (with your actual qualification pillars and win data) |
-| `proposal-generation.md` (section structure + QC checklist) | `proposal-generation.md` (with your pricing rules, CRM fields, and customer references) |
-| `email-processing.md` (process template) | `email-processing.md` (with your folder structure and routing rules) |
+| `api/api-template.md` (generic OAuth pattern) | `api/[your-crm]-api.md`, `api/[your-email]-api.md` (filled-in per service) |
+| `sales/sales-framework.md` (structure only) | `sales/sales-framework.md` (with your actual qualification pillars and win data) |
+| `sales/proposal-generation.md` (section structure + QC checklist) | `sales/proposal-generation.md` (with your pricing rules, CRM fields, customer references) |
+| `email/email-processing.md` (process template) | `email/email-processing.md` (with your folder structure and routing rules) |
+| `coding/source-control.md` (pattern + snippets) | `coding/source-control.md` (with your actual repos, orgs, PATs, and branches) |
+| `coding/project-scoping-bp.md` (question bank + process) | `coding/project-scoping-bp.md` (with your project examples and lessons learned) |
 | `about-me.md` (empty prompts) | `about-me.md` (your filled-in bio) |
 | `memory/glossary.md` (empty structure) | `memory/glossary.md` (your people, terms, and lessons) |
 
-Files like `banned-writing-styles.md`, `working-style.md`, and `seo-style.md` are the same in both — they're generic enough to share as-is.
+Files like `writing/banned-writing-styles.md`, `working-style.md`, and `seo/seo-style.md` are the same in both — they're generic enough to share as-is.
+
+### Files that only exist in private
+
+These have no public template counterpart because they're too org-specific to generalize:
+
+| Private-Only File | Why It Stays Private |
+|---|---|
+| `api/[crm]-api.md` | Specific CRM endpoints, field mappings, account IDs |
+| `api/[email]-api.md` | Specific Graph/email API config with drive IDs, tenant IDs |
+| `security/[vault]-setup-guide.md` | Step-by-step tied to your specific vault instance |
+| `security/team-key-distribution.md` | Your team's credential distribution process |
+| `team/team-project-*.md` | Role-specific instructions for your team members |
+| `helpers/*.py` | Key helper scripts tied to your vault and sync architecture |
+| `migrations/*.md` | Internal migration playbooks between your specific tools |
+
+---
+
+## Multi-Tier Architecture (Optional)
+
+If you share standards with a team, consider a three-tier repo structure:
+
+| Tier | Audience | What It Contains |
+|------|----------|-----------------|
+| **Private** | You only | Everything — full context, credentials, memory, personal data |
+| **Team** | Your team | Sanitized standards — coding, security, writing rules, API patterns (no personal data) |
+| **Public** | Anyone | This template — frameworks with `<!-- CUSTOMIZE -->` blocks (no org data at all) |
+
+Changes flow downstream: Private → Team → Public. Structure changes propagate. Data changes don't.
+
+See the "Context File Repos — Multi-Tier Architecture" section in `CLAUDE.md` for the full setup.
 
 ---
 
@@ -60,7 +96,9 @@ Run this mental checklist:
 - [ ] No file paths that reveal your directory structure
 - [ ] No credential file names, vault names, or secret store identifiers
 - [ ] No pricing data, win-rate numbers, or proprietary methodology details
-- [ ] References to private tools use generic placeholders (`[your-crm]`, `[your-email]`)
+- [ ] No repo names, branch names, or PAT names that reveal your org structure
+- [ ] No project-specific examples that name real products or codebases
+- [ ] References to private tools use generic placeholders (`[your-crm]`, `[your-email]`, `[your-org]`)
 
 ---
 

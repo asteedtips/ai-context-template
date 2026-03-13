@@ -5,9 +5,9 @@
 
 ---
 
-> **How to use this file**: Read this file before writing, reviewing, or modifying any code. It defines the standards for your codebase. Where a specific context file has deeper guidance (e.g., `security-practices.md` for credential handling), this file links to it rather than duplicating.
+> **How to use this file**: Read this file before writing, reviewing, or modifying any code. It defines the standards for your codebase. Where a specific context file has deeper guidance (e.g., `security/security-practices.md` for credential handling), this file links to it rather than duplicating.
 
-> **Cross-references**: `security-practices.md` governs all credential and secrets management. `best-practices-creation.md` governs documentation output formats. `banned-writing-styles.md` applies to all written deliverables including code comments and README files.
+> **Cross-references**: `security/security-practices.md` governs all credential and secrets management. `writing/best-practices-creation.md` governs documentation output formats. `writing/banned-writing-styles.md` applies to all written deliverables including code comments and README files.
 
 ---
 
@@ -160,7 +160,7 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 2. Register folder entries in the `.sqlproj` file.
 3. Add seed script references to `Script.PostDeployment.sql`.
 4. Publish the SSDT project to the target database.
-5. **Reverse-engineer entity classes** from the published schema. This step is a gated dependency in the phase plan; call it out as its own line item so it doesn't get skipped. See `project-scoping-bp.md` Section 8.
+5. **Reverse-engineer entity classes** from the published schema. This step is a gated dependency in the phase plan; call it out as its own line item so it doesn't get skipped. See `coding/project-scoping-bp.md` Section 8.
 6. Delete any hand-written entities or ORM migration files. SSDT owns the schema; the reverse-engineer tool owns entity generation. No dual sources.
 
 **Recommended conventions:**
@@ -181,9 +181,9 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 
 ### Secrets Management
 
-**Non-negotiable:** All secrets live in your secret store. See `security-practices.md`.
+**Non-negotiable:** All secrets live in your secret store. See `security/security-practices.md`.
 
-**Database access is read-only by default.** AI agents may run `SELECT` queries freely but must not execute any write, update, delete, or DDL operation without explicit approval. This applies regardless of the credential's actual permission level. See the "Database Access — Read-Only by Default" section in `security-practices.md` for the full policy.
+**Database access is read-only by default.** AI agents may run `SELECT` queries freely but must not execute any write, update, delete, or DDL operation without explicit approval. This applies regardless of the credential's actual permission level. See the "Database Access — Read-Only by Default" section in `security/security-practices.md` for the full policy.
 
 - Config files may contain non-secret values (URLs, feature flags, timeouts). Never client secrets, API keys, tokens, or passwords.
 - Connection strings in production should use Managed Identity where possible.
@@ -265,7 +265,7 @@ A mock that only confirms "an HTTP call happened" will pass even when the wrong 
 
 <!-- CUSTOMIZE: Remove this section if your projects don't use HTML mockups for UI validation. -->
 
-When a project has approved HTML mockups (per `project-scoping-bp.md` Section 5), every UI component must be built side-by-side against its mockup and verified before marking the component as done. This is a gated step.
+When a project has approved HTML mockups (per `coding/project-scoping-bp.md` Section 5), every UI component must be built side-by-side against its mockup and verified before marking the component as done. This is a gated step.
 
 **Per-component process:**
 
@@ -341,5 +341,5 @@ When the AI agent has access to build tools locally, it must build and run tests
 
 ---
 
-*Read this file before writing, reviewing, or modifying any code. For security guidance, see `security-practices.md`. For documentation formatting, see `best-practices-creation.md`.*
+*Read this file before writing, reviewing, or modifying any code. For security guidance, see `security/security-practices.md`. For documentation formatting, see `writing/best-practices-creation.md`.*
 *Last updated: 2026-03-13 — SSDT gated workflow (reverse-engineer step), API Contract Tests, UI Mockup Conformance gate*

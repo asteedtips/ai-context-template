@@ -16,7 +16,7 @@
 
 ## 3. Self-Improvement Loop
 
-- After ANY correction: update `memory/glossary.md (Lessons Learned section)` with the pattern
+- After ANY correction: update `memory/glossary.md` (Lessons Learned section) with the pattern
 - Write rules that prevent the same SEO mistake
 - Ruthlessly iterate on these lessons until error rate drops
 - Review lessons at session start for every new project

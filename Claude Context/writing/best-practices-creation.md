@@ -55,7 +55,7 @@
 
 ## 2. Writing Style Rules
 
-**Read `banned-writing-styles.md` before writing anything.** It is the single source for all vocabulary bans, phrase bans, and structural rules. No summary here can stay current with the full file, so don't rely on summaries. Read the source.
+**Read `writing/banned-writing-styles.md` before writing anything.** It is the single source for all vocabulary bans, phrase bans, and structural rules. No summary here can stay current with the full file, so don't rely on summaries. Read the source.
 
 ---
 
@@ -145,7 +145,7 @@ Before marking any documentation task complete:
 
 - [ ] Output format is correct (`.docx` for deliverables, `.md` for context only)
 - [ ] File saved to the correct subfolder with the correct naming convention
-- [ ] No banned vocabulary or phrases from `banned-writing-styles.md`
+- [ ] No banned vocabulary or phrases from `writing/banned-writing-styles.md`
 - [ ] No hollow openers, no rule-of-three reflexes, no uniform sentence lengths
 - [ ] All diagrams rendered to PNG/SVG before embedding — not raw Mermaid code
 - [ ] All credentials loaded from your secret store, never hardcoded

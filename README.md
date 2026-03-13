@@ -27,7 +27,10 @@ This template was extracted from a production system used daily for sales propos
 - **Email processing** — inbox triage categories, routing rules, and a confirm-before-moving protocol.
 - **SEO workflow** — keyword strategy, intent-first planning, and verification checklist.
 - **Coding standards** — layered architecture, DI patterns, error handling, testing targets, CI/CD pipeline requirements.
+- **Project scoping** — decisions table, question bank, phased delivery planning, UI mockup validation, and progress tracking.
+- **Source control** — multi-org repo management, PAT selection, clone/pull/push patterns for mounted environments.
 - **Task tracking and glossary** — persistent task board and a decoder ring for your internal shorthand.
+- **Setup guides** — step-by-step walkthroughs for connecting Claude to Microsoft Graph and securing API keys with Azure Key Vault.
 
 ---
 
@@ -39,7 +42,7 @@ The system is built on three principles: **Context**, **Interaction**, and **Mem
 
 **Interaction** is the operating model. The agent asks targeted questions before starting (using selectable options, not text walls), integrates everything you share as foundational context, builds on outputs you've confirmed as good, and researches before responding when current information matters. The goal is zero context-switching for you — the agent handles the legwork and presents results.
 
-**Memory** is the persistence layer. A glossary that decodes your shorthand and tracks lessons learned. A task board that carries over between sessions. A changelog that lets the agent scan what's new since its last session. Memory is what turns isolated conversations into a compounding knowledge graph.
+**Memory** is the persistence layer. A glossary that decodes your shorthand and tracks lessons learned. A task board that carries over between sessions. Session logs that let the agent scan what happened in prior conversations. Memory is what turns isolated conversations into a compounding knowledge graph.
 
 Most people focus on prompts (the Interaction layer) and ignore Context and Memory entirely. That's why their output plateaus. This template gives you all three from day one.
 
@@ -49,12 +52,12 @@ Most people focus on prompts (the Interaction layer) and ignore Context and Memo
 
 These patterns come from months of daily production use. Follow them and you'll avoid the mistakes that cost the most time.
 
-### 1. Start with three files, not thirteen
+### 1. Start with three files, not twenty
 
 Don't try to fill in everything at once. Start with:
 
 1. **`CLAUDE.md`** — Your name, company, and the "How I Expect You to Work" section
-2. **`banned-writing-styles.md`** — Use it as-is on day one. It works immediately.
+2. **`writing/banned-writing-styles.md`** — Use it as-is on day one. It works immediately.
 3. **`memory/glossary.md`** — Add your team members and the acronyms you use daily
 
 Everything else can wait until you actually need it. The sales framework matters when you're doing sales work. The coding standards matter when you're writing code. Don't front-load setup for workflows you won't touch this week.
@@ -67,19 +70,19 @@ The `PRIVATE-FILES.md` file documents exactly which files should stay private an
 
 ### 3. Use dependency chains, not a flat file list
 
-Not every task needs every context file. Loading thirteen files when you only need two wastes token budget and dilutes the agent's focus. The `CLAUDE.md` template includes a workflow dependency chain table:
+Not every task needs every context file. Loading twenty files when you only need two wastes token budget and dilutes the agent's focus. The `CLAUDE.md` template includes a workflow dependency chain table:
 
 | Workflow | Files to Load (in order) |
 |----------|--------------------------|
-| Casual conversation | `banned-writing-styles.md` only |
-| Proposal creation | `security-practices.md` → `[crm]-api.md` → `proposal-generation.md` → `best-practices-creation.md` → `banned-writing-styles.md` |
-| Code work | `coding-best-practices.md` → `security-practices.md` |
+| Casual conversation | `writing/banned-writing-styles.md` only |
+| Code work | `coding/coding-best-practices.md` → `security/security-practices.md` → `coding/source-control.md` |
+| New project scoping | `coding/project-scoping-bp.md` → `coding/coding-best-practices.md` → `security/security-practices.md` |
 
 This tells the agent exactly what to read and in what order. Lightweight tasks stay fast. Complex tasks get full context.
 
 ### 4. Never duplicate content across files
 
-When the same information appears in multiple files, it drifts. One file gets updated, the others don't, and the agent gets contradictory instructions. Instead, use cross-references: "See `security-practices.md` for the full credential architecture." One source of truth per topic.
+When the same information appears in multiple files, it drifts. One file gets updated, the others don't, and the agent gets contradictory instructions. Instead, use cross-references: "See `security/security-practices.md` for the full credential architecture." One source of truth per topic.
 
 ### 5. Gate the session — declare the workflow before starting work
 
@@ -95,11 +98,11 @@ The key detail: the agent should present questions as selectable options, not pl
 
 ### 7. Track what works, ban what doesn't
 
-The `banned-writing-styles.md` file is a living document. When the agent produces a phrase that sounds robotic, add it to the ban list. When a format works well, note it in the relevant context file. Over time, your context system converges on output that sounds like you wrote it — because the ban list is shaped by your taste, not a generic style guide.
+The `writing/banned-writing-styles.md` file is a living document. When the agent produces a phrase that sounds robotic, add it to the ban list. When a format works well, note it in the relevant context file. Over time, your context system converges on output that sounds like you wrote it — because the ban list is shaped by your taste, not a generic style guide.
 
 ### 8. Log lessons in the glossary
 
-The glossary isn't just a decoder ring. It has a Lessons Learned section where you record patterns: "LESSON: Deals stall when Impact is unquantified. RULE: Never leave a discovery call without at least one number attached to the problem." The agent reads this at session start. Mistakes made once don't repeat.
+The glossary isn't just a decoder ring. It has a Lessons Learned section where you record patterns: "LESSON: Deals stall when the impact is unquantified. RULE: Never leave a discovery call without at least one number attached to the problem." The agent reads this at session start. Mistakes made once don't repeat.
 
 ### 9. Push context to version control
 
@@ -112,6 +115,10 @@ Plans, analysis, audit findings, and anything between you and the AI should be i
 ### 11. End with a next step, not a summary
 
 Every context file and every agent interaction should point forward. "Here's what we could do next" beats "Here's what we just discussed." This is built into the writing rules and the working-style instructions. Summaries are for reports. Conversations should move.
+
+### 12. Organize files by domain, not by date
+
+Context files are grouped into subfolders by function: `writing/`, `coding/`, `sales/`, `security/`, `api/`, `email/`, `seo/`, and `guides/`. This keeps related files together and makes the dependency chains in `CLAUDE.md` easier to read. When you add a new file, put it in the subfolder that matches its domain. If no subfolder fits, create one.
 
 ---
 
@@ -131,7 +138,7 @@ Every file uses `<!-- CUSTOMIZE -->` HTML comment blocks to mark sections you ne
 
 ### 3. Set up credentials (when you need API access)
 
-Follow the architecture in `security-practices.md`. Copy `api-template.md` for each service. Store secrets in a vault, never in plain text.
+Follow the architecture in `security/security-practices.md`. Copy `api/api-template.md` for each service. Store secrets in a vault, never in plain text. See the guides in `guides/` for step-by-step walkthroughs.
 
 ### 4. Point your agent at CLAUDE.md
 
@@ -145,47 +152,72 @@ Follow the architecture in `security-practices.md`. Copy `api-template.md` for e
 
 ```
 ai-context-template/
-├── CLAUDE.md                          ← Master instructions (read every session)
-├── TASKS.md                           ← Active task tracking
-├── CHANGELOG.md                       ← Track context file changes
-├── PRIVATE-FILES.md                   ← Guide for splitting public/private
-├── LICENSE                            ← MIT
-├── README.md                          ← This file
+├── CLAUDE.md                                ← Master instructions (read every session)
+├── TASKS.md                                 ← Active task tracking
+├── CHANGELOG.md                             ← Track context file changes
+├── PRIVATE-FILES.md                         ← Guide for splitting public/private
+├── LICENSE                                  ← MIT
+├── README.md                                ← This file
 │
 ├── Claude Context/
-│   ├── about-me.md                    ← Your bio and background
-│   ├── banned-writing-styles.md       ← AI writing pattern bans (ready to use)
-│   ├── working-style.md              ← How the agent should operate (ready to use)
-│   ├── best-practices-creation.md     ← Doc output formats, diagrams, quality checklist
-│   ├── security-practices.md          ← Credential management architecture
-│   ├── api-template.md               ← Copy this for each API integration
-│   ├── sales-framework.md            ← Qualification + pipeline management
-│   ├── proposal-generation.md         ← Customer-centric proposal workflow
-│   ├── email-processing.md           ← Inbox triage and routing process
-│   ├── seo-style.md                  ← SEO content workflow (ready to use)
-│   └── coding-best-practices.md       ← .NET/C# coding standards
+│   ├── about-me.md                          ← Your bio and background
+│   ├── working-style.md                     ← How the agent should operate (ready to use)
+│   │
+│   ├── writing/
+│   │   ├── banned-writing-styles.md         ← AI writing pattern bans (ready to use)
+│   │   └── best-practices-creation.md       ← Doc output formats, diagrams, quality checklist
+│   │
+│   ├── coding/
+│   │   ├── coding-best-practices.md         ← Code standards (.NET/C# focused, adaptable)
+│   │   ├── project-scoping-bp.md            ← Project scoping process and question bank
+│   │   └── source-control.md                ← Git repo management and PAT selection
+│   │
+│   ├── sales/
+│   │   ├── sales-framework.md               ← Qualification + pipeline management
+│   │   └── proposal-generation.md           ← Customer-centric proposal workflow
+│   │
+│   ├── security/
+│   │   └── security-practices.md            ← Credential management architecture
+│   │
+│   ├── api/
+│   │   └── api-template.md                  ← Copy this for each API integration
+│   │
+│   ├── email/
+│   │   └── email-processing.md              ← Inbox triage and routing process
+│   │
+│   ├── seo/
+│   │   └── seo-style.md                     ← SEO content workflow (ready to use)
+│   │
+│   └── guides/
+│       ├── Connecting-Claude-to-Microsoft-Graph.md    ← Graph API setup walkthrough
+│       └── Securing-Claude-API-Keys-With-Azure-Key-Vault.md  ← Key Vault setup guide
 │
 └── memory/
-    └── glossary.md                    ← People, acronyms, lessons learned
+    ├── glossary.md                          ← People, acronyms, lessons learned
+    └── Tasks/
+        └── TEMPLATE.md                      ← Session log template
 ```
 
 ### Readiness Levels
 
-| Ready to use (zero changes needed) | `banned-writing-styles.md`, `working-style.md`, `seo-style.md` |
+| Ready to use (zero changes needed) | `writing/banned-writing-styles.md`, `working-style.md`, `seo/seo-style.md` |
 |---|---|
-| **Light customization** | `CLAUDE.md`, `best-practices-creation.md`, `CHANGELOG.md`, `TASKS.md` |
-| **Build your own content** | `about-me.md`, `glossary.md`, `security-practices.md`, `sales-framework.md`, `proposal-generation.md`, `email-processing.md`, `coding-best-practices.md` |
-| **Copy per API integration** | `api-template.md` → duplicate and rename for each service |
+| **Light customization** | `CLAUDE.md`, `writing/best-practices-creation.md`, `CHANGELOG.md`, `TASKS.md` |
+| **Build your own content** | `about-me.md`, `glossary.md`, `security/security-practices.md`, `sales/sales-framework.md`, `sales/proposal-generation.md`, `email/email-processing.md`, `coding/coding-best-practices.md`, `coding/project-scoping-bp.md`, `coding/source-control.md` |
+| **Copy per API integration** | `api/api-template.md` → duplicate and rename for each service |
+| **Reference guides** | `guides/` → follow as-needed for initial setup |
 
 ---
 
 ## Extending the System
 
-**New API integration:** Copy `api-template.md` → fill in auth, endpoints, and behavior rules → add to `CLAUDE.md` dependency chains → store secrets per `security-practices.md`.
+**New API integration:** Copy `api/api-template.md` → fill in auth, endpoints, and behavior rules → add to `CLAUDE.md` dependency chains → store secrets per `security/security-practices.md`.
 
-**New workflow:** Create a `.md` in `Claude Context/` → add to the context file table in `CLAUDE.md` → add a dependency chain if it needs multiple files → log in `CHANGELOG.md`.
+**New workflow:** Create a `.md` in the appropriate `Claude Context/` subfolder → add to the context file table in `CLAUDE.md` → add a dependency chain if it needs multiple files → log in `CHANGELOG.md`.
 
-**New writing rules:** Propose additions or removals before editing `banned-writing-styles.md`. Include the reasoning. Review quarterly — AI tells evolve as models change.
+**New writing rules:** Propose additions or removals before editing `writing/banned-writing-styles.md`. Include the reasoning. Review quarterly — AI tells evolve as models change.
+
+**New subfolder:** If a new domain doesn't fit existing subfolders, create one. Update the file structure diagram in this README and the dependency chains in `CLAUDE.md`.
 
 ---
 
@@ -193,7 +225,7 @@ ai-context-template/
 
 Built by [Albert Steed](https://www.linkedin.com/in/albertsteed/) at [True IP Solutions](https://trueipsolutions.com). Developed through daily production use with Claude (Anthropic) across sales, proposals, email management, code review, and documentation.
 
-The system started as a handful of notes and grew into 17 interconnected context files that run a real business. This template is the distilled, shareable version.
+The system started as a handful of notes and grew into 20+ interconnected context files that run a real business. This template is the distilled, shareable version.
 
 ## License
 

@@ -11,12 +11,15 @@ These instructions govern every session. Read them fully at the start of each co
 
 | File | When to Read It |
 |------|----------------|
-| `Claude Context/best-practices-creation.md` | **Any documentation task** — output formats, diagrams, naming, quality checklist |
+| `Claude Context/writing/best-practices-creation.md` | **Any documentation task** — output formats, diagrams, naming, quality checklist |
 | `Claude Context/about-me.md` | Any time personal or professional background is relevant |
 | `Claude Context/working-style.md` | For understanding how you expect AI agents to operate |
-| `Claude Context/banned-writing-styles.md` | **Every session, every response** — mandatory writing rules |
-| `Claude Context/security-practices.md` | Any API integration, credential handling, or new connection setup |
-| `Claude Context/seo-style.md` | Any SEO-related content or website copy |
+| `Claude Context/writing/banned-writing-styles.md` | **Every session, every response** — mandatory writing rules |
+| `Claude Context/security/security-practices.md` | Any API integration, credential handling, or new connection setup |
+| `Claude Context/seo/seo-style.md` | Any SEO-related content or website copy |
+| `Claude Context/coding/coding-best-practices.md` | **Any code creation, review, or modification task** — architecture, testing, security, CI/CD |
+| `Claude Context/coding/project-scoping-bp.md` | **Any new code project scoping** — decisions table, question bank, phased delivery, data model drafts |
+| `Claude Context/coding/source-control.md` | Any work involving git repositories — folder structure, PAT selection, clone/pull/push patterns |
 | `ClaudeCowork/memory/glossary.md` | Decode shorthand, names, acronyms, and internal language |
 | `ClaudeCowork/TASKS.md` | Track active tasks, waiting-on items, and commitments |
 | `memory/Tasks/*.md` | **Every session** (auto-created). Chat session logs with executive summaries and detailed narratives. See "Chat Session Logging" section below. |
@@ -24,16 +27,43 @@ These instructions govern every session. Read them fully at the start of each co
 <!--
   ADD YOUR OWN CONTEXT FILES HERE as you build them.
   Examples:
-  | `Claude Context/[your-crm]-api.md` | Any CRM data pull or deal workflow |
-  | `Claude Context/[your-email]-api.md` | Any email, calendar, or file storage access |
-  | `Claude Context/[your-sales-framework].md` | Any sales motion, pipeline review, or qualification work |
-  | `Claude Context/proposal-generation.md` | Any proposal creation |
-  | `Claude Context/coding-best-practices.md` | Any code creation, review, or modification |
+  | `Claude Context/api/[your-crm]-api.md` | Any CRM data pull or deal workflow |
+  | `Claude Context/api/[your-email]-api.md` | Any email, calendar, or file storage access |
+  | `Claude Context/sales/[your-sales-framework].md` | Any sales motion, pipeline review, or qualification work |
+  | `Claude Context/sales/proposal-generation.md` | Any proposal creation |
+  | `Claude Context/email/email-processing.md` | Any inbox review, email triage, or email organization task |
 -->
 
 **Critical:** The `banned-writing-styles.md` file contains a full list of words, phrases, and structural patterns that must never appear in any response. Read it at the start of the session and enforce it throughout. Do not self-amend that file without explicit approval.
 
 **Critical:** The `best-practices-creation.md` file is the master reference for all documentation tasks. Read it before creating any deliverable — it governs format, naming, diagram use, and the quality checklist.
+
+**Critical:** The `coding-best-practices.md` file governs all code work. Read it before writing, reviewing, or modifying any code. It defines architecture standards, testing requirements, security rules, CI/CD expectations, and tracks known gaps.
+
+---
+
+## Workflow Dependency Chains — Which Files to Load
+
+For each major task type, load these files in order. This prevents missing a dependency mid-task.
+
+| Workflow | Files to Load (in order) |
+|----------|--------------------------|
+| **Documentation creation** | `writing/best-practices-creation.md` → `writing/banned-writing-styles.md` |
+| **SEO content** | `seo/seo-style.md` → `writing/banned-writing-styles.md` |
+| **Code work** | `coding/coding-best-practices.md` → `security/security-practices.md` → `coding/source-control.md` |
+| **New code project scoping** | `coding/project-scoping-bp.md` → `coding/coding-best-practices.md` → `security/security-practices.md` → `coding/source-control.md` |
+| **Casual conversation / quick questions** | `writing/banned-writing-styles.md` only. Skip all API and workflow files. |
+
+<!--
+  ADD YOUR OWN WORKFLOW CHAINS HERE as you add API and domain context files.
+  Examples:
+  | **Proposal creation** | `security/security-practices.md` → `api/[crm]-api.md` → `sales/proposal-generation.md` → `writing/best-practices-creation.md` → `writing/banned-writing-styles.md` |
+  | **Pipeline review** | `security/security-practices.md` → `api/[crm]-api.md` → `sales/[sales-framework].md` → `writing/banned-writing-styles.md` |
+  | **Email triage** | `security/security-practices.md` → `api/[email]-api.md` → `email/email-processing.md` → `memory/glossary.md` |
+  | **Account research / sales prep** | `security/security-practices.md` → `api/[crm]-api.md` → `sales/[sales-framework].md` → `about-me.md` |
+-->
+
+**When no workflow matches:** Load `writing/banned-writing-styles.md` and `memory/glossary.md`. Add others only if the task requires API access or specific domain context.
 
 ---
 
@@ -41,7 +71,14 @@ These instructions govern every session. Read them fully at the start of each co
 
 <!--
   CUSTOMIZE: Add your own session start steps here — credential loading, context sync,
-  repo pulls, etc. The VM maintenance step below applies to anyone using Cowork mode.
+  repo pulls, etc. The steps below apply to anyone using Cowork mode or a similar
+  agent environment.
+
+  If you version-control your context files (recommended), add a pull step here:
+  1. Unlock credentials (if using a vault)
+  2. Pull latest context from your private repo
+  3. If any files were updated, re-read them before proceeding
+  4. Pull any source control repos that are already cloned
 -->
 
 **VM disk cleanup (Cowork users).** The Cowork VM has a 10 GB root volume that fills up from pip packages, temp files, and caches across sessions. Run this early in each session — before pulling repos or installing packages:
@@ -65,29 +102,6 @@ The 70% threshold is a good default. Adjust if your workflow installs heavier de
 
 ---
 
-## Workflow Dependency Chains — Which Files to Load
-
-For each major task type, load these files in order. This prevents missing a dependency mid-task.
-
-| Workflow | Files to Load (in order) |
-|----------|--------------------------|
-| **Documentation creation** | `best-practices-creation.md` → `banned-writing-styles.md` |
-| **SEO content** | `seo-style.md` → `banned-writing-styles.md` |
-| **Casual conversation / quick questions** | `banned-writing-styles.md` only. Skip all API and workflow files. |
-
-<!--
-  ADD YOUR OWN WORKFLOW CHAINS HERE as you add API and domain context files.
-  Examples:
-  | **Proposal creation** | `security-practices.md` → `[crm]-api.md` → `proposal-generation.md` → `best-practices-creation.md` → `banned-writing-styles.md` |
-  | **Pipeline review** | `security-practices.md` → `[crm]-api.md` → `[sales-framework].md` → `banned-writing-styles.md` |
-  | **Email triage** | `security-practices.md` → `[email]-api.md` → `email-processing.md` → `memory/glossary.md` |
-  | **Code work** | `coding-best-practices.md` → `security-practices.md` |
--->
-
-**When no workflow matches:** Load `banned-writing-styles.md` and `memory/glossary.md`. Add others only if the task requires API access or specific domain context.
-
----
-
 ## API Credentials — Your Secret Store
 
 <!--
@@ -101,13 +115,16 @@ For each major task type, load these files in order. This prevents missing a dep
   The principle: secrets never live in plain text in any file the AI can read.
   Only environment variable NAMES go in context files — never actual values.
 
-  See `Claude Context/security-practices.md` for the recommended architecture pattern.
+  See `Claude Context/security/security-practices.md` for the recommended architecture pattern.
+  See `Claude Context/guides/Securing-Claude-API-Keys-With-Azure-Key-Vault.md` for a
+  step-by-step walkthrough using Azure Key Vault.
 -->
 
 **Keys that trigger needing credentials loaded:**
 <!-- List your API integrations and when they're needed. Examples: -->
 <!-- - Any CRM task → needs `YOUR_CRM_CLIENT_ID`, `YOUR_CRM_CLIENT_SECRET` -->
 <!-- - Any email/calendar task → needs `YOUR_EMAIL_CLIENT_ID`, etc. -->
+<!-- - Any source control task → needs `GITHUB_PAT` -->
 
 ---
 
@@ -164,7 +181,7 @@ Use available tools proactively — web search, API calls, file reads — but on
 
 ## Writing Rules
 
-**Read `Claude Context/banned-writing-styles.md` at session start. It is the single source of truth for all vocabulary, phrase, and structural writing rules.** Every response must comply. Do not self-amend that file without explicit approval.
+**Read `Claude Context/writing/banned-writing-styles.md` at session start. It is the single source of truth for all vocabulary, phrase, and structural writing rules.** Every response must comply. Do not self-amend that file without explicit approval.
 
 ---
 
@@ -184,7 +201,7 @@ Use available tools proactively — web search, API calls, file reads — but on
 
 ### File Naming and Folder Conventions
 
-See `best-practices-creation.md` for the master folder/naming table.
+See `writing/best-practices-creation.md` for the master folder/naming table.
 
 <!--
   CUSTOMIZE: Define your own folder structure and naming conventions in
@@ -227,9 +244,56 @@ Update the session log after meaningful milestones, not after every single excha
 - An error or unexpected problem is encountered and resolved
 - A task is completed
 
+### End-of-Session Push
+
+<!--
+  CUSTOMIZE: If you sync context to a remote repo, push the session log before
+  the session ends. Example:
+  ```bash
+  python3 context_sync.py push
+  ```
+-->
+
 ### Reading Previous Session Logs
 
 At session start, scan `memory/Tasks/` for recent session logs. Read the most recent 2-3 files to pick up context from prior sessions. Reference them naturally when relevant.
+
+---
+
+## Context File Repos — Multi-Tier Architecture
+
+<!--
+  OPTIONAL BUT RECOMMENDED: If you share your context framework with a team
+  or publicly, use a multi-tier repo architecture to keep data separated.
+
+  Example structure:
+
+  | Repo | Audience | Contains |
+  |------|----------|----------|
+  | Private repo | You only | Full CLAUDE.md, all context files, memory, tasks, credentials |
+  | Team repo | Your team | Sanitized standards — coding, security, writing rules, API references |
+  | Public repo | Anyone | Templatized framework with `<!-- CUSTOMIZE -->` blocks — no proprietary data |
+
+  Propagation rules:
+  - Changes flow downstream: Private → Team → Public
+  - Never skip the team repo and push directly to public
+  - When a context file is updated, check if the change should propagate
+  - Structure changes propagate. Data changes don't.
+
+  What propagates to the team repo:
+  - Updated standards (coding, security, writing, documentation)
+  - New behavior gates or API patterns
+  - Structural changes to shared files
+
+  What propagates to the public template:
+  - New generalizable patterns
+  - Structural changes to CLAUDE.md
+  - Updated best practices in writing rules or coding standards
+
+  What NEVER propagates to public:
+  - API credentials, customer names, pricing, proprietary methodology
+  - Team-specific data, personal information, internal tooling paths
+-->
 
 ---
 

@@ -1,6 +1,6 @@
 # Banned Writing Styles & AI-Identifiable Patterns
 
-> **Cross-reference**: `Claude Context/best-practices-creation.md` contains output format rules, naming conventions, and diagram standards. This file governs writing voice and vocabulary only. Both files apply to every deliverable.
+> **Cross-reference**: `Claude Context/writing/best-practices-creation.md` contains output format rules, naming conventions, and diagram standards. This file governs writing voice and vocabulary only. Both files apply to every deliverable.
 
 > **Purpose**: This file defines writing patterns, vocabulary, punctuation habits, and structural tendencies that are statistically associated with AI-generated text. The AI agent must avoid all rules listed here in every response.
 

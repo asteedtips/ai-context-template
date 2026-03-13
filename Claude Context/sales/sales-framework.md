@@ -9,7 +9,7 @@
 
 **[YOUR NAME] | [YOUR TITLE] | [YOUR COMPANY]**
 
-> **Before preparing any sales documentation, read `Claude Context/best-practices-creation.md`** — it governs output formats, diagram standards, naming conventions, and writing rules for all deliverables.
+> **Before preparing any sales documentation, read `Claude Context/writing/best-practices-creation.md`** — it governs output formats, diagram standards, naming conventions, and writing rules for all deliverables.
 
 ---
 
