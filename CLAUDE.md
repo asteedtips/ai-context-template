@@ -19,6 +19,7 @@ These instructions govern every session. Read them fully at the start of each co
 | `Claude Context/seo-style.md` | Any SEO-related content or website copy |
 | `ClaudeCowork/memory/glossary.md` | Decode shorthand, names, acronyms, and internal language |
 | `ClaudeCowork/TASKS.md` | Track active tasks, waiting-on items, and commitments |
+| `memory/Tasks/*.md` | **Every session** (auto-created). Chat session logs with executive summaries and detailed narratives. See "Chat Session Logging" section below. |
 
 <!--
   ADD YOUR OWN CONTEXT FILES HERE as you build them.
@@ -162,6 +163,45 @@ See `best-practices-creation.md` for the master folder/naming table.
   best-practices-creation.md. The principle: every deliverable type has a
   defined folder and naming pattern so nothing gets lost.
 -->
+
+---
+
+## Chat Session Logging
+
+Every chat session gets a persistent log file in `memory/Tasks/`. The logs serve two purposes: (1) disaster recovery when the working environment resets, and (2) cross-session continuity so future sessions can reference what happened before.
+
+<!--
+  HOW THIS WORKS: If you use a sync mechanism (GitHub, cloud storage, etc.),
+  include memory/Tasks/*.md in your sync scope so logs persist across resets.
+  If you don't sync, the logs still provide continuity within a single
+  environment lifecycle.
+-->
+
+### When to Create
+
+At the start of every session, create a new file in `memory/Tasks/` using the naming pattern `YYYY-MM-DD-short-topic.md`. If multiple chats happen on the same day, append a sequence number: `YYYY-MM-DD-short-topic-02.md`. Use the template at `memory/Tasks/TEMPLATE.md` for structure.
+
+If the session purpose isn't clear yet, create the file with a placeholder topic like `2026-03-13-general.md` and rename it once the direction becomes clear.
+
+### What Goes In
+
+**Executive Summary (top of file):** 2-4 sentences covering why the chat happened and what was accomplished. Include lists of: files generated (with paths), projects touched, decisions made, and open items.
+
+**Session Narrative (bottom of file):** Chronological account of the session. Write this for a future AI session that has no other context. Include: what was asked, what approach was taken, what problems came up and how they were solved, file paths, API calls, and the reasoning behind decisions. Use milestone headings to break it into phases.
+
+### When to Update
+
+Update the session log after meaningful milestones, not after every single exchange. Milestones include:
+
+- A decision is confirmed
+- A file is created, modified, or delivered
+- The topic shifts to a new area
+- An error or unexpected problem is encountered and resolved
+- A task is completed
+
+### Reading Previous Session Logs
+
+At session start, scan `memory/Tasks/` for recent session logs. Read the most recent 2-3 files to pick up context from prior sessions. Reference them naturally when relevant.
 
 ---
 
