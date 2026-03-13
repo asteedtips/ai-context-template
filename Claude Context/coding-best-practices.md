@@ -264,6 +264,31 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 - Background services must handle their own exceptions
 - Use caching for frequently-read, rarely-changed data with explicit expiration
 
+### 9.4 Local Build Verification Gate
+
+<!-- CUSTOMIZE: Replace the SDK version and build commands with your stack (e.g., .NET 10, Node.js, Python, Go). -->
+
+When the AI agent has access to build tools locally, it must build and run tests before committing to git. No exceptions.
+
+**Pre-commit sequence (run in order):**
+
+<!-- CUSTOMIZE: Replace these commands with your project's build and test commands. -->
+1. Run the build command for your solution or affected project(s). Fix any compiler errors or warnings before proceeding.
+2. Run the test suite. All tests must pass. If a test fails, diagnose and fix it before committing.
+3. If the build or tests require secrets/config that aren't available in the local environment, note that in the commit message and flag it to the developer. Don't skip the gate silently.
+
+**When this gate applies:**
+- Any source code change (new files, edits, dependency/package changes)
+- Database migration additions
+- Dependency injection or service registration changes
+
+**When this gate does not apply:**
+- Documentation-only changes
+- Configuration changes that don't affect compilation
+- Branch housekeeping (merges, cherry-picks where the source branch already passed)
+
+**If the build fails and the fix is non-trivial:** Stop and discuss with the developer before attempting a fix that touches code outside the scope of the original task. The goal is to catch regressions introduced by the current change, not to fix pre-existing build issues in a drive-by commit.
+
 ---
 
 ## 10. Known Gaps — Tracked Issues
@@ -298,4 +323,4 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 ---
 
 *Read this file before writing, reviewing, or modifying any code. For security guidance, see `security-practices.md`. For documentation formatting, see `best-practices-creation.md`.*
-*Last updated: [DATE]*
+*Last updated: 2026-03-12 — Added Section 9.4 (Local Build Verification Gate)*
