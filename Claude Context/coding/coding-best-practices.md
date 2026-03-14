@@ -274,6 +274,11 @@ When a project has approved HTML mockups (per `coding/project-scoping-bp.md` Sec
 3. Document any gaps. A gap means the component is not done.
 4. Fix all gaps before marking the component complete.
 
+<!-- CUSTOMIZE: Add a subsection here for any framework-version-specific migration gotchas
+     your team has encountered. Example: .NET 10 changed JsonContent.Create() to default
+     to camelCase serialization (JsonSerializerOptions.Web), breaking external API calls
+     that expect PascalCase. Document the fix pattern and when to audit for it. -->
+
 ---
 
 ## 9. Performance & Reliability
