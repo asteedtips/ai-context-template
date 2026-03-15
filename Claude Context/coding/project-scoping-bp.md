@@ -25,6 +25,11 @@ Use this when you're adding a new implementation of an existing abstraction. The
 
 Track B uses an abbreviated template: Decisions Table, Out of Scope, Files to Create/Modify, Testing Sequence, and Changelog. Skip sections that are already governed by the pattern doc (architecture, data model, phasing).
 
+**Track C: Technical Debt / Coverage Improvement**
+Use this when the work is neither greenfield nor a new integration, but rather improving an existing codebase: adding test coverage, refactoring for testability, paying down documented gaps, or standardizing patterns across bounded contexts.
+
+Track C uses the same template as Track A, but the "Overview" section is a current-state audit (what exists today, what's missing, measured by coverage or gap count), the "Decisions Table" focuses on scope boundaries (which contexts to cover, which to defer, what coverage target per phase), and the "Phased Delivery Plan" orders phases by risk (most-depended-on and least-tested code goes first).
+
 **When it's not obvious which track applies**, default to Track A. A scope doc with too much detail is never the problem. A scope doc with too little always is.
 
 ---
@@ -261,6 +266,31 @@ Wave 2 (after Wave 1):
 
 ---
 
+## 8c. Phased Execution Protocol
+
+This section defines the gate sequence for executing a phased delivery plan. Where Section 8 defines *what* the phases are and Section 8b defines *how to track* them, this section defines *how to execute* each phase to completion. The per-project compile-run-fix gate mechanics live in `coding-best-practices.md` Section 9.4.1; this section covers the orchestration layer.
+
+### Per-Phase Gate Sequence
+
+After all projects within a phase pass their individual compile-run-fix gates (see `coding-best-practices.md` Section 9.4.1), run the phase-level gates:
+
+1. **Solution gate.** Run the full test suite, not just the phase's tests. This catches regressions where new mocks, helpers, or dependency changes conflict with existing tests.
+2. **Fix any solution-level regressions** from step 1.
+3. **Update the plan.** Record actual test counts, deviations, and issues that inform later phases. Same session, not later.
+4. **Phase commit.** Final commit updating the plan document with phase results.
+
+### Execution Order vs Phase Number
+
+Phases don't have to execute in numerical order. When phases have no dependencies between them, reorder by risk: the most depended-on code with the least test coverage goes first.
+
+Document the execution order in the plan.
+
+### Phase Results Section
+
+Every plan should include a "Phase Results" section that gets filled in after each phase completes. Each entry records: completion date, actual test count vs estimate, commit hash, deviations from plan, and issues that affect later phases. This section is the ground truth for cross-session continuity.
+
+---
+
 ## 9. Testing Strategy
 
 The scope doc defines how this project will be tested.
@@ -271,6 +301,10 @@ The scope doc defines how this project will be tested.
 - **Must-test paths**: List areas that need 100% coverage (auth, money handling, data mutations).
 - **Mocking strategy**: What gets mocked and what uses real implementations.
 - **Test isolation**: Can tests run without external services?
+
+### Test count estimation
+
+When scoping a test phase, initial estimates consistently undershoot the actual count by 1.5x to 2x. This is the natural result of edge cases, parameterized test expansions, and validation tests that only become visible once you're writing the tests. Use a 1.75x multiplier when estimating test counts for phase scoping. This doesn't change effort (there are no hour estimates), but it prevents later phases from being scoped too aggressively based on unrealistic baselines.
 
 ---
 
@@ -331,6 +365,9 @@ Every project plan doc follows this section order. Sections marked as Track A on
 ## 8b. Implementation Orchestration & Progress
 [Wave map, progress tracker, integration items]
 
+## 8c. Phased Execution Protocol
+[Per-phase gate sequence, execution order documented, phase results section present]
+
 ## 9. Testing Strategy
 [Coverage, must-test paths, mocking, isolation]
 
@@ -380,6 +417,7 @@ Before marking a scope doc complete, verify:
 - [ ] Data model drafts included (Track A) with relationships and defaults
 - [ ] Phases ordered by dependency, each producing something testable
 - [ ] Testing strategy specifies coverage target, must-test paths, and mocking approach
+- [ ] Execution protocol defined: per-phase gate sequence, execution order documented, phase results section present
 - [ ] Changelog section exists
 - [ ] No banned vocabulary from `writing/banned-writing-styles.md`
 - [ ] File saved to the correct location with the correct naming convention
@@ -387,4 +425,4 @@ Before marking a scope doc complete, verify:
 ---
 
 *Read this file before starting any code project. As new projects are scoped and built, update the standard question bank with questions that keep recurring.*
-*Last updated: [DATE]*
+*Last updated: 2026-03-15 — Added Track C (technical debt), test count estimation, Phased Execution Protocol (Section 8c), updated template and checklist*
