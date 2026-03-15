@@ -221,11 +221,44 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 - Test isolation: No dependency on external services, execution order, or shared mutable state.
 - Test naming: `{MethodName}_{Scenario}_{ExpectedResult}`
 
+**InMemory database key conflicts:** When using in-memory databases for testing, auto-increment counters can collide across test methods. Fix: assign explicit IDs on all seeded entities using non-overlapping ranges per test class or fixture.
+
+**Transitive dependency awareness:** Before adding a project reference from one test project to another for shared fixtures, check the transitive package dependencies. If the referenced test project pulls in large packages, inline the shared helper instead.
+
 ### API Contract Tests (External API Wrappers)
 
 When a service wraps an external API, unit tests must verify the shape of the outgoing HTTP request, not just that a call was made. Assert on the URL path, query parameters, HTTP method, and request body structure in the mock handler.
 
 A mock that only confirms "an HTTP call happened" will pass even when the wrong parameter is sent. The bug only surfaces in integration tests or production. Contract tests that assert on request shape catch these mismatches immediately.
+
+### Reflection-Based Function Entry Point Testing
+
+<!-- CUSTOMIZE: If your project uses Azure Functions, AWS Lambda, or similar serverless entry points, use this pattern. Remove if not applicable. -->
+
+Serverless entry points (Azure Functions, Lambda handlers) are thin orchestration layers. The service logic is tested in service-layer unit tests. But the entry points have metadata that matters: route patterns, HTTP methods, authorization levels, trigger attributes. Bugs in these surface as 404s or auth failures in production.
+
+**The reflection-based alternative:** Test the function's metadata through reflection instead of executing its logic. This verifies the contract without needing mocks for the full dependency tree.
+
+**What reflection tests verify:**
+- Function exists with the expected name
+- Route pattern matches the expected path
+- HTTP methods are correct
+- Authorization level is correct
+- Required parameters are present
+- Return type matches expectations
+
+**When to use:** For serverless entry points where the service layer is already tested. This is not a replacement for service-layer tests; it validates the deployment surface.
+
+### Untestable Production Code Protocol
+
+When writing tests for existing production code, you'll sometimes hit methods that can't be mocked: non-virtual methods on concrete classes, sealed classes, services that create concrete dependencies internally, or static method calls.
+
+**Don't skip the test. Don't rewrite the production code on a whim.** Follow this protocol:
+
+1. **Try a workaround first.** Use a real instance with mocked sub-dependencies.
+2. **If the workaround fails and the fix is small,** create a minimal refactor: extract an interface, make a method virtual, or inject the dependency.
+3. **If the refactor is non-trivial,** stop and flag it. Document the limitation in the test plan and create a separate work item.
+4. **For reflection tests,** the untestability constraint doesn't apply because they don't execute production code.
 
 ---
 
@@ -274,6 +307,28 @@ When a project has approved HTML mockups (per `coding/project-scoping-bp.md` Sec
 3. Document any gaps. A gap means the component is not done.
 4. Fix all gaps before marking the component complete.
 
+### bUnit Component Testing
+
+<!-- CUSTOMIZE: If your project uses Blazor with MudBlazor or similar component libraries, use this pattern. Adjust the fixture setup for your specific library. -->
+
+For Blazor component tests, use bUnit. A single shared UI test project is preferred over one per bounded context.
+
+**Fixture requirements:**
+- `bUnit.TestContext` with your UI library's providers registered
+- Mock service layer per context
+- Loose JS interop mode for components that call JavaScript
+
+**What bUnit tests verify:**
+- Component renders without throwing given valid, empty, and error service responses
+- Interactive elements trigger the right service calls
+- Conditional rendering works (loading, empty, error states)
+- Form validation messages appear for bad input
+- Navigation redirects correctly after operations
+
+**What bUnit tests do NOT verify:**
+- Visual appearance (CSS, layout). That's manual or screenshot-based testing.
+- Component library internals. Trust the library; test your usage of it.
+
 <!-- CUSTOMIZE: Add a subsection here for any framework-version-specific migration gotchas
      your team has encountered. Example: .NET 10 changed JsonContent.Create() to default
      to camelCase serialization (JsonSerializerOptions.Web), breaking external API calls
@@ -313,6 +368,25 @@ When the AI agent has access to build tools locally, it must build and run tests
 
 **If the build fails and the fix is non-trivial:** Stop and discuss with the developer before attempting a fix that touches code outside the scope of the original task. The goal is to catch regressions introduced by the current change, not to fix pre-existing build issues in a drive-by commit.
 
+#### 9.4.1 Compile-Run-Fix Loop (Multi-Project Phases)
+
+When a phase involves multiple test projects, the pre-commit sequence expands into an iterative gate loop. For orchestration across a phased plan, see `coding/project-scoping-bp.md` Section 8c.
+
+**Per-project gate loop:**
+
+1. **Write all test classes** for the project before compiling.
+2. **Compile gate:** Build the test project. Fix every compiler error and warning.
+3. **Run gate:** Run the full test project. Every test must pass.
+4. **Fix loop:** If a test fails, diagnose, fix, and re-run.
+5. **Commit** once the full project compiles and all tests pass.
+
+**Gate failure protocol:**
+
+If fixing a test failure requires changing production code:
+- **Bug the test exposed:** Fix production code, commit separately, note in plan.
+- **Interface changed since plan was written:** Update test, note deviation.
+- **Code is untestable as-is:** See the Untestable Production Code Protocol above.
+
 ---
 
 ## 10. Known Gaps — Tracked Issues
@@ -347,4 +421,4 @@ When the AI agent has access to build tools locally, it must build and run tests
 ---
 
 *Read this file before writing, reviewing, or modifying any code. For security guidance, see `security/security-practices.md`. For documentation formatting, see `writing/best-practices-creation.md`.*
-*Last updated: 2026-03-13 — SSDT gated workflow (reverse-engineer step), API Contract Tests, UI Mockup Conformance gate*
+*Last updated: 2026-03-15 — Added per-context test structure, InMemory key conflicts, transitive deps, reflection-based entry point testing, untestable code protocol, bUnit testing, compile-run-fix gate loop*
