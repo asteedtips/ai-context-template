@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Inbox Monitor - UI Mockup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --mud-palette-primary: #594AE2;
+            --mud-palette-primary-dark: #4636c7;
+            --mud-palette-primary-light: #7e72e8;
+            --mud-palette-secondary: #ff4081;
+            --mud-palette-surface: #ffffff;
+            --mud-palette-background: #f5f5f5;
+            --mud-palette-appbar-background: #594AE2;
+            --mud-palette-drawer-background: #1e1e2d;
+            --mud-palette-drawer-text: #b8b8cc;
+            --mud-palette-text-primary: #424242;
+            --mud-palette-text-secondary: #757575;
+            --mud-palette-success: #00c853;
+            --mud-palette-warning: #ff9800;
+            --mud-palette-error: #f44336;
+            --mud-palette-info: #2196f3;
+            --mud-palette-divider: rgba(0,0,0,0.12);
+            --mud-elevation-1: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
+            --mud-elevation-2: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12);
+            --mud-elevation-4: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Roboto', sans-serif; background: var(--mud-palette-background); color: var(--mud-palette-text-primary); }
+
+        /* Layout */
+        .layout { display: flex; min-height: 100vh; }
+
+        /* Sidebar / Drawer */
+        .drawer {
+            width: 260px;
+            background: var(--mud-palette-drawer-background);
+            color: var(--mud-palette-drawer-text);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .drawer-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .drawer-header img { width: 36px; height: 36px; border-radius: 4px; }
+        .drawer-header .brand { font-size: 18px; font-weight: 500; color: #fff; }
+        .drawer-header .brand-sub { font-size: 11px; color: var(--mud-palette-drawer-text); }
+
+        .nav-section { padding: 8px 0; }
+        .nav-section-label {
+            padding: 8px 20px 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.35);
+            font-weight: 500;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-size: 14px;
+            text-decoration: none;
+            color: var(--mud-palette-drawer-text);
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.06); }
+        .nav-item.active { background: rgba(89,74,226,0.25); color: #fff; }
+        .nav-item .material-icons { font-size: 20px; opacity: 0.7; }
+        .nav-item.active .material-icons { opacity: 1; }
+
+        .nav-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+        }
+        .nav-group-header:hover { background: rgba(255,255,255,0.06); }
+        .nav-group-header .material-icons:first-child { font-size: 20px; margin-right: 12px; }
+        .nav-group-header .expand-icon { font-size: 18px; transition: transform 0.2s; }
+        .nav-group-header.expanded .expand-icon { transform: rotate(180deg); }
+        .nav-group-children .nav-item { padding-left: 52px; }
+
+        /* Main Content */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* App Bar */
+        .appbar {
+            height: 56px;
+            background: var(--mud-palette-appbar-background);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            box-shadow: var(--mud-elevation-4);
+            z-index: 10;
+            gap: 16px;
+        }
+        .appbar-title { font-size: 18px; font-weight: 500; flex: 1; }
+        .appbar-breadcrumb { font-size: 13px; opacity: 0.8; }
+        .appbar-breadcrumb span { opacity: 0.6; }
+        .appbar-actions { display: flex; align-items: center; gap: 8px; }
+        .icon-btn {
+            width: 36px; height: 36px; border-radius: 50%; border: none;
+            background: transparent; color: #fff; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        .icon-btn:hover { background: rgba(255,255,255,0.15); }
+
+        /* Content */
+        .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+        /* Role Toggle */
+        .role-toggle {
+            position: fixed; bottom: 24px; right: 24px; z-index: 100;
+            display: flex; align-items: center; gap: 12px;
+            background: #1e1e2d; color: #fff; padding: 10px 20px;
+            border-radius: 28px; box-shadow: var(--mud-elevation-4);
+            font-size: 13px; font-weight: 500;
+        }
+        .role-toggle label { cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .toggle-switch {
+            width: 44px; height: 24px; background: #555; border-radius: 12px;
+            position: relative; cursor: pointer; transition: background 0.2s;
+        }
+        .toggle-switch.active { background: var(--mud-palette-primary); }
+        .toggle-switch::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 20px; height: 20px; border-radius: 50%; background: #fff;
+            transition: transform 0.2s;
+        }
+        .toggle-switch.active::after { transform: translateX(20px); }
+
+        /* MudCard */
+        .mud-card {
+            background: var(--mud-palette-surface);
+            border-radius: 4px;
+            box-shadow: var(--mud-elevation-1);
+            overflow: hidden;
+        }
+        .mud-card-header {
+            padding: 16px 16px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .mud-card-header-title { font-size: 14px; font-weight: 500; color: var(--mud-palette-text-secondary); text-transform: uppercase; letter-spacing: 0.02em; }
+        .mud-card-content { padding: 8px 16px 16px; }
+
+        /* Stat Cards */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--mud-palette-surface);
+            border-radius: 4px;
+            box-shadow: var(--mud-elevation-1);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .stat-icon {
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .stat-icon .material-icons { font-size: 24px; color: #fff; }
+        .stat-icon.primary { background: var(--mud-palette-primary); }
+        .stat-icon.success { background: var(--mud-palette-success); }
+        .stat-icon.warning { background: var(--mud-palette-warning); }
+        .stat-icon.error { background: var(--mud-palette-error); }
+        .stat-icon.info { background: var(--mud-palette-info); }
+        .stat-value { font-size: 28px; font-weight: 500; line-height: 1.1; }
+        .stat-label { font-size: 13px; color: var(--mud-palette-text-secondary); margin-top: 2px; }
+        .stat-trend { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 2px; }
+        .stat-trend.up { color: var(--mud-palette-success); }
+        .stat-trend.down { color: var(--mud-palette-error); }
+        .stat-trend .material-icons { font-size: 14px; }
+
+        /* Chart Area */
+        .chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .chart-placeholder {
+            height: 200px; display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 4px; color: var(--mud-palette-text-secondary);
+            font-size: 13px; position: relative;
+        }
+        /* Mini bar chart mockup */
+        .mini-bars { display: flex; align-items: flex-end; gap: 6px; height: 140px; padding: 0 20px; }
+        .mini-bar { flex: 1; border-radius: 3px 3px 0 0; min-width: 24px; position: relative; }
+        .mini-bar .bar-label {
+            position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+            font-size: 10px; color: var(--mud-palette-text-secondary); white-space: nowrap;
+        }
+        /* Donut chart mockup */
+        .donut-container { display: flex; align-items: center; justify-content: center; height: 180px; gap: 20px; }
+        .donut {
+            width: 120px; height: 120px; border-radius: 50%;
+            background: conic-gradient(
+                var(--mud-palette-primary) 0deg 130deg,
+                var(--mud-palette-success) 130deg 210deg,
+                var(--mud-palette-warning) 210deg 280deg,
+                var(--mud-palette-info) 280deg 330deg,
+                #e0e0e0 330deg 360deg
+            );
+            position: relative;
+        }
+        .donut::after {
+            content: ''; position: absolute; top: 25px; left: 25px;
+            width: 70px; height: 70px; border-radius: 50%; background: #fff;
+        }
+        .donut-legend { font-size: 12px; display: flex; flex-direction: column; gap: 6px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--mud-palette-text-primary);
+        }
+
+        /* MudDataGrid / Table */
+        .mud-table {
+            background: var(--mud-palette-surface);
+            border-radius: 4px;
+            box-shadow: var(--mud-elevation-1);
+            overflow: hidden;
+        }
+        .mud-table-toolbar {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--mud-palette-divider);
+        }
+        .mud-table-toolbar-title { font-size: 16px; font-weight: 500; }
+        .mud-table-toolbar-actions { display: flex; gap: 8px; align-items: center; }
+        .mud-table table { width: 100%; border-collapse: collapse; }
+        .mud-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--mud-palette-text-secondary);
+            border-bottom: 2px solid var(--mud-palette-divider);
+            cursor: pointer;
+            user-select: none;
+        }
+        .mud-table th:hover { color: var(--mud-palette-text-primary); }
+        .mud-table th .sort-icon { font-size: 14px; vertical-align: middle; margin-left: 2px; opacity: 0.5; }
+        .mud-table td {
+            padding: 12px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--mud-palette-divider);
+        }
+        .mud-table tr:hover td { background: rgba(0,0,0,0.02); }
+        .mud-table tr.clickable { cursor: pointer; }
+        .mud-table-footer {
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--mud-palette-text-secondary);
+        }
+
+        /* MudChip */
+        .mud-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            gap: 4px;
+        }
+        .mud-chip .material-icons { font-size: 14px; }
+        .mud-chip.success { background: #e8f5e9; color: #2e7d32; }
+        .mud-chip.warning { background: #fff3e0; color: #e65100; }
+        .mud-chip.error { background: #ffebee; color: #c62828; }
+        .mud-chip.info { background: #e3f2fd; color: #1565c0; }
+        .mud-chip.default { background: #f5f5f5; color: #616161; }
+        .mud-chip.primary { background: #ede7f6; color: #4527a0; }
+        .mud-chip.amber { background: #fff8e1; color: #f57f17; }
+
+        /* Dry Run amber stripe on activity items */
+        .activity-item.dry-run {
+            background: #fffde7;
+            border-left: 3px solid #ffb300;
+        }
+        /* Partial payment warning */
+        .activity-item.payment-warn {
+            background: #fff3e0;
+        }
+
+        /* MudButton */
+        .mud-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'Roboto', sans-serif;
+        }
+        .mud-btn .material-icons { font-size: 18px; }
+        .mud-btn-primary { background: var(--mud-palette-primary); color: #fff; }
+        .mud-btn-primary:hover { background: var(--mud-palette-primary-dark); box-shadow: var(--mud-elevation-2); }
+        .mud-btn-outlined {
+            background: transparent;
+            color: var(--mud-palette-primary);
+            border: 1px solid rgba(89,74,226,0.5);
+        }
+        .mud-btn-outlined:hover { background: rgba(89,74,226,0.04); border-color: var(--mud-palette-primary); }
+        .mud-btn-text { background: transparent; color: var(--mud-palette-primary); }
+        .mud-btn-text:hover { background: rgba(89,74,226,0.04); }
+        .mud-btn-sm { padding: 4px 10px; font-size: 12px; }
+
+        /* MudTextField / Search */
+        .mud-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border: 1px solid var(--mud-palette-divider);
+            border-radius: 4px;
+            background: #fff;
+            min-width: 200px;
+        }
+        .mud-search .material-icons { font-size: 18px; color: var(--mud-palette-text-secondary); }
+        .mud-search input {
+            border: none;
+            outline: none;
+            font-size: 14px;
+            font-family: 'Roboto', sans-serif;
+            width: 100%;
+            color: var(--mud-palette-text-primary);
+        }
+
+        /* Recent Activity */
+        .activity-list { display: flex; flex-direction: column; }
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--mud-palette-divider);
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .activity-icon .material-icons { font-size: 16px; color: #fff; }
+        .activity-icon.success { background: var(--mud-palette-success); }
+        .activity-icon.error { background: var(--mud-palette-error); }
+        .activity-icon.info { background: var(--mud-palette-info); }
+        .activity-icon.warning { background: var(--mud-palette-warning); }
+        .activity-text { font-size: 13px; line-height: 1.4; }
+        .activity-text strong { font-weight: 500; }
+        .activity-time { font-size: 11px; color: var(--mud-palette-text-secondary); margin-top: 2px; }
+
+        /* Cron Display */
+        .cron-display { font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--mud-palette-text-secondary); }
+
+        /* Sparkline */
+        .sparkline { display: flex; align-items: flex-end; gap: 1px; height: 24px; }
+        .sparkline-bar { width: 3px; border-radius: 1px; background: var(--mud-palette-primary); opacity: 0.6; }
+
+        /* Admin-only indicator */
+        .admin-only { display: none; }
+        body.admin-view .admin-only { display: initial; }
+        body.user-view .user-only-hidden { display: none; }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .chart-row { grid-template-columns: 1fr; }
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body class="admin-view">
+
+<div class="layout">
+    <!-- Sidebar / Drawer -->
+    <div class="drawer">
+        <div class="drawer-header">
+            <div style="width:36px;height:36px;background:var(--mud-palette-primary);border-radius:4px;display:flex;align-items:center;justify-content:center;">
+                <span style="color:#fff;font-weight:700;font-size:16px;">T</span>
+            </div>
+            <div>
+                <div class="brand">TIPS Portal</div>
+                <div class="brand-sub">True IP Solutions</div>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <a class="nav-item" href="#">
+                <span class="material-icons">dashboard</span>
+                Dashboard
+            </a>
+            <a class="nav-item" href="#">
+                <span class="material-icons">description</span>
+                LOA Admin
+            </a>
+            <a class="nav-item" href="#">
+                <span class="material-icons">public</span>
+                International Rates
+            </a>
+            <a class="nav-item" href="#">
+                <span class="material-icons">campaign</span>
+                Mass Notify
+            </a>
+            <a class="nav-item" href="#">
+                <span class="material-icons">pets</span>
+                SNOUT
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-group-header expanded" onclick="this.classList.toggle('expanded');this.nextElementSibling.style.display=this.classList.contains('expanded')?'block':'none'">
+                <div style="display:flex;align-items:center;">
+                    <span class="material-icons">smart_toy</span>
+                    Claudé
+                </div>
+                <span class="material-icons expand-icon">expand_more</span>
+            </div>
+            <div class="nav-group-children">
+                <a class="nav-item active" href="#">
+                    <span class="material-icons">inbox</span>
+                    Inbox Monitor
+                </a>
+                <a class="nav-item" href="#" style="opacity:0.4;pointer-events:none;">
+                    <span class="material-icons">auto_awesome</span>
+                    <span style="font-style:italic">Coming Soon</span>
+                </a>
+            </div>
+        </div>
+
+        <div style="flex:1;"></div>
+        <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.3);">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span class="material-icons" style="font-size:16px;">person</span>
+                <span id="sidebar-user">Albert Steed</span>
+            </div>
+            <div style="margin-top:4px;padding-left:24px;">
+                <span class="mud-chip primary" style="font-size:10px;padding:2px 6px;" id="sidebar-role">ClaudeInboxAdmin</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        <!-- App Bar -->
+        <div class="appbar">
+            <div class="appbar-title">
+                <span class="appbar-breadcrumb"><span>Claudé</span> / </span>Inbox Monitor
+            </div>
+            <div class="appbar-actions">
+                <button class="icon-btn" title="Refresh"><span class="material-icons">refresh</span></button>
+                <button class="icon-btn" title="Notifications"><span class="material-icons">notifications</span></button>
+                <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;">AS</div>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="content">
+
+            <!-- Overview Dashboard Section -->
+            <div class="section-header">
+                <div class="section-title">Overview</div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div class="mud-search" style="min-width:140px;">
+                        <span class="material-icons">calendar_today</span>
+                        <input type="text" value="Last 7 days" readonly style="cursor:pointer;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <span class="material-icons">email</span>
+                    </div>
+                    <div>
+                        <div class="stat-value">1,247</div>
+                        <div class="stat-label">Emails Processed</div>
+                        <div class="stat-trend up"><span class="material-icons">trending_up</span> 12% vs last week</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <span class="material-icons">payments</span>
+                    </div>
+                    <div>
+                        <div class="stat-value">38</div>
+                        <div class="stat-label">Payments Logged</div>
+                        <div class="stat-trend up"><span class="material-icons">trending_up</span> $142,580 total</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <span class="material-icons">confirmation_number</span>
+                    </div>
+                    <div>
+                        <div class="stat-value">24</div>
+                        <div class="stat-label">Tickets Created</div>
+                        <div class="stat-trend down"><span class="material-icons">trending_down</span> 8% vs last week</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon error">
+                        <span class="material-icons">error_outline</span>
+                    </div>
+                    <div>
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">Processing Errors</div>
+                        <div class="stat-trend up"><span class="material-icons">trending_up</span> 2 resolved</div>
+                    </div>
+                </div>
+                <div class="stat-card admin-only">
+                    <div class="stat-icon warning">
+                        <span class="material-icons">inbox</span>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="inbox-count-stat">5</div>
+                        <div class="stat-label">Active Inboxes</div>
+                        <div class="stat-trend" style="color:var(--mud-palette-text-secondary);">All healthy</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="chart-row">
+                <div class="mud-card">
+                    <div class="mud-card-header">
+                        <span class="mud-card-header-title">Processing Volume (7 days)</span>
+                    </div>
+                    <div class="mud-card-content">
+                        <div class="mini-bars">
+                            <div class="mini-bar" style="height:60%;background:var(--mud-palette-primary);"><span class="bar-label">Mon</span></div>
+                            <div class="mini-bar" style="height:85%;background:var(--mud-palette-primary);"><span class="bar-label">Tue</span></div>
+                            <div class="mini-bar" style="height:70%;background:var(--mud-palette-primary);"><span class="bar-label">Wed</span></div>
+                            <div class="mini-bar" style="height:45%;background:var(--mud-palette-primary);"><span class="bar-label">Thu</span></div>
+                            <div class="mini-bar" style="height:92%;background:var(--mud-palette-primary);"><span class="bar-label">Fri</span></div>
+                            <div class="mini-bar" style="height:20%;background:rgba(89,74,226,0.3);"><span class="bar-label">Sat</span></div>
+                            <div class="mini-bar" style="height:15%;background:rgba(89,74,226,0.3);"><span class="bar-label">Sun</span></div>
+                            <!-- Stacked portion for payments -->
+                            <div style="position:absolute;bottom:0;left:20px;right:20px;display:flex;gap:6px;align-items:flex-end;height:140px;">
+                                <div style="flex:1;height:15%;background:var(--mud-palette-success);border-radius:3px 3px 0 0;opacity:0.6;"></div>
+                                <div style="flex:1;height:22%;background:var(--mud-palette-success);border-radius:3px 3px 0 0;opacity:0.6;"></div>
+                                <div style="flex:1;height:18%;background:var(--mud-palette-success);border-radius:3px 3px 0 0;opacity:0.6;"></div>
+                                <div style="flex:1;height:10%;background:var(--mud-palette-success);border-radius:3px 3px 0 0;opacity:0.6;"></div>
+                                <div style="flex:1;height:25%;background:var(--mud-palette-success);border-radius:3px 3px 0 0;opacity:0.6;"></div>
+                                <div style="flex:1;height:3%;background:rgba(0,200,83,0.2);border-radius:3px 3px 0 0;"></div>
+                                <div style="flex:1;height:2%;background:rgba(0,200,83,0.2);border-radius:3px 3px 0 0;"></div>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:16px;margin-top:28px;justify-content:center;font-size:12px;">
+                            <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--mud-palette-primary);"></div> Emails Processed</div>
+                            <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:2px;background:var(--mud-palette-success);"></div> Payments Logged</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mud-card">
+                    <div class="mud-card-header">
+                        <span class="mud-card-header-title">AI Categories</span>
+                    </div>
+                    <div class="mud-card-content">
+                        <div class="donut-container">
+                            <div class="donut"></div>
+                            <div class="donut-legend">
+                                <div class="legend-item"><div class="legend-dot" style="background:var(--mud-palette-primary);"></div> Informational (36%)</div>
+                                <div class="legend-item"><div class="legend-dot" style="background:var(--mud-palette-success);"></div> Follow-Up (22%)</div>
+                                <div class="legend-item"><div class="legend-dot" style="background:var(--mud-palette-warning);"></div> Needs Response (19%)</div>
+                                <div class="legend-item"><div class="legend-dot" style="background:var(--mud-palette-info);"></div> Payment (14%)</div>
+                                <div class="legend-item"><div class="legend-dot" style="background:#e0e0e0;"></div> Other (9%)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="mud-card" style="margin-bottom:24px;">
+                <div class="mud-card-header">
+                    <span class="mud-card-header-title">Latest Run Summary</span>
+                    <span style="font-size:12px;color:var(--mud-palette-text-secondary);">Today 8:00 AM — accounting@trueipsolutions.com</span>
+                </div>
+                <div class="mud-card-content" style="padding-top:0;">
+                    <div style="background:#f8f9fa;border-radius:4px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--mud-palette-text-primary);border-left:3px solid var(--mud-palette-primary);">
+                        <strong>42 emails processed.</strong> 6 payments logged (Bill.com $12,450, REPAY $8,200, Smithfield PO-2847 $3,100, Bill.com $5,680, REPAY $2,340, Bill.com $890). 3 new helpdesk tickets created for Smithfield PO issues. 8 emails flagged as needing response — 3 from Onslow County about the paging expansion, 2 from New Hanover Schools about E-Rate filing, 3 vendor invoices requiring approval. 12 informational emails filed to folders. No processing errors.
+                    </div>
+                    <!-- Dry Run example summary -->
+                    <div style="background:#fffde7;border-radius:4px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--mud-palette-text-primary);border-left:3px solid #ffb300;margin-top:12px;">
+                        <span class="mud-chip amber" style="font-size:10px;padding:2px 6px;margin-right:6px;">
+                            <span class="material-icons" style="font-size:12px;">science</span> DRY RUN
+                        </span>
+                        <strong>support@trueipsolutions.com — Today 10:00 AM</strong><br>
+                        23 emails scanned. <em>Would have:</em> created 2 Desk tickets, moved 8 emails to folders, flagged 3 for response, logged 1 payment ($4,200 from REPAY).
+                        All actions simulated — no changes made.
+                    </div>
+                    <!-- Partial payment warning example -->
+                    <div style="background:#fff3e0;border-radius:4px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--mud-palette-text-primary);border-left:3px solid var(--mud-palette-warning);margin-top:12px;">
+                        <span class="material-icons" style="font-size:16px;vertical-align:middle;color:var(--mud-palette-warning);margin-right:4px;">warning</span>
+                        <strong>Partial payment skipped:</strong> Bill.com email for INV-4891 shows $3,100.00 but invoice balance due is $4,650.00. Amount mismatch — payment not auto-recorded. Review manually in Zoho Books.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configured Inboxes Table -->
+            <div class="section-header" style="margin-top:8px;">
+                <div class="section-title">Configured Inboxes</div>
+                <div style="display:flex;gap:8px;">
+                    <div class="mud-search">
+                        <span class="material-icons">search</span>
+                        <input type="text" placeholder="Search inboxes...">
+                    </div>
+                    <button class="mud-btn mud-btn-outlined admin-only" id="test-run-btn" onclick="alert('Triggers a one-shot run for the selected inbox. SignalR pushes progress events back to this page in real time.')">
+                        <span class="material-icons">play_arrow</span>
+                        Test Run Now
+                    </button>
+                    <button class="mud-btn mud-btn-primary admin-only" id="add-inbox-btn">
+                        <span class="material-icons">add</span>
+                        Add Inbox
+                    </button>
+                </div>
+            </div>
+
+            <div class="mud-table" id="inbox-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:28px;padding-right:0;"></th>
+                            <th>Mailbox <span class="material-icons sort-icon">arrow_downward</span></th>
+                            <th>Display Name</th>
+                            <th>Type</th>
+                            <th>Schedule</th>
+                            <th>Rules</th>
+                            <th>Mode</th>
+                            <th>Last Run</th>
+                            <th>Status</th>
+                            <th style="width:60px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="inbox-tbody">
+                        <!-- Rows populated by JS based on role -->
+                    </tbody>
+                </table>
+                <div class="mud-table-footer">
+                    <span id="table-footer-text">Showing 5 inboxes</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span>Rows per page:</span>
+                        <select style="border:1px solid var(--mud-palette-divider);border-radius:4px;padding:2px 4px;font-size:13px;">
+                            <option>10</option><option>25</option><option>50</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Role Toggle -->
+<div class="role-toggle">
+    <span class="material-icons" style="font-size:16px;">visibility</span>
+    <span>View as:</span>
+    <label>
+        <span id="role-label" style="font-weight:600;color:var(--mud-palette-primary-light);">Admin</span>
+        <div class="toggle-switch active" id="role-toggle" onclick="toggleRole()"></div>
+    </label>
+</div>
+
+<script>
+const allInboxes = [
+    {
+        mailbox: 'accounting@trueipsolutions.com',
+        displayName: 'Accounting Inbox',
+        type: 'shared',
+        schedule: '0 */4 * * *',
+        scheduleHuman: 'Every 4 hours',
+        rules: 12,
+        lastRun: 'Today 8:00 AM',
+        lastRunEmails: 42,
+        status: 'healthy',
+        statusLabel: 'Healthy',
+        sparkline: [8,5,3,7,4,6,3,9,5,4,7,6,8,5],
+        runMode: 'Live',
+        ownerOnly: false
+    },
+    {
+        mailbox: 'asteed@trueipsolutions.com',
+        displayName: "Albert's Inbox",
+        type: 'personal',
+        schedule: '0 8 * * 1-5',
+        scheduleHuman: 'Weekdays 8:00 AM',
+        rules: 8,
+        lastRun: 'Today 8:00 AM',
+        lastRunEmails: 67,
+        status: 'healthy',
+        statusLabel: 'Healthy',
+        sparkline: [12,8,15,9,11,7,14,10,8,13,11,9,12,10],
+        runMode: 'Live',
+        ownerOnly: true,
+        ownerUpn: 'asteed@trueipsolutions.com'
+    },
+    {
+        mailbox: 'support@trueipsolutions.com',
+        displayName: 'Support Inbox',
+        type: 'shared',
+        schedule: '0 */2 * * *',
+        scheduleHuman: 'Every 2 hours',
+        rules: 6,
+        lastRun: 'Today 10:00 AM',
+        lastRunEmails: 23,
+        status: 'healthy',
+        statusLabel: 'Healthy',
+        sparkline: [4,6,3,5,7,4,6,3,5,4,7,5,4,6],
+        runMode: 'DryRun',
+        ownerOnly: false
+    },
+    {
+        mailbox: 'sales@trueipsolutions.com',
+        displayName: 'Sales Inbox',
+        type: 'shared',
+        schedule: '0 9,13,17 * * 1-5',
+        scheduleHuman: '9AM, 1PM, 5PM weekdays',
+        rules: 4,
+        lastRun: 'Today 9:00 AM',
+        lastRunEmails: 18,
+        status: 'warning',
+        statusLabel: '1 Error',
+        sparkline: [2,4,1,3,5,2,4,3,1,5,3,2,4,3],
+        runMode: 'Live',
+        ownerOnly: false
+    },
+    {
+        mailbox: 'ksteed@trueipsolutions.com',
+        displayName: "Kari's Inbox",
+        type: 'personal',
+        schedule: '0 8 * * 1-5',
+        scheduleHuman: 'Weekdays 8:00 AM',
+        rules: 5,
+        lastRun: 'Today 8:00 AM',
+        lastRunEmails: 31,
+        status: 'healthy',
+        statusLabel: 'Healthy',
+        sparkline: [6,4,7,5,3,8,4,6,5,7,4,6,5,3],
+        runMode: 'DryRun',
+        ownerOnly: true,
+        ownerUpn: 'ksteed@trueipsolutions.com'
+    }
+];
+
+const currentUserUpn = 'asteed@trueipsolutions.com';
+let isAdmin = true;
+
+function renderSparkline(data) {
+    const max = Math.max(...data);
+    return data.map(v => `<div class="sparkline-bar" style="height:${Math.max(2, (v/max)*100)}%;"></div>`).join('');
+}
+
+function renderInboxes() {
+    const tbody = document.getElementById('inbox-tbody');
+    const visibleInboxes = isAdmin
+        ? allInboxes
+        : allInboxes.filter(i => !i.ownerOnly || i.ownerUpn === currentUserUpn);
+
+    tbody.innerHTML = visibleInboxes.map((inbox, idx) => `
+        <tr class="clickable" onclick="alert('Navigate to /claude/inbox/${idx+1}')">
+            <td style="padding-right:0;">
+                <span class="material-icons" style="font-size:18px;color:${inbox.status==='healthy'?'var(--mud-palette-success)':inbox.status==='warning'?'var(--mud-palette-warning)':'var(--mud-palette-error)'};">
+                    ${inbox.status === 'healthy' ? 'check_circle' : inbox.status === 'warning' ? 'warning' : 'error'}
+                </span>
+            </td>
+            <td>
+                <div style="font-weight:500;">${inbox.mailbox}</div>
+            </td>
+            <td>${inbox.displayName}</td>
+            <td>
+                <span class="mud-chip ${inbox.type==='shared'?'info':'default'}" style="font-size:11px;padding:2px 8px;">
+                    <span class="material-icons">${inbox.type==='shared'?'group':'person'}</span>
+                    ${inbox.type==='shared'?'Shared':'Personal'}
+                </span>
+            </td>
+            <td>
+                <div style="font-size:13px;">${inbox.scheduleHuman}</div>
+                <div class="cron-display">${inbox.schedule}</div>
+            </td>
+            <td>
+                <span style="font-weight:500;">${inbox.rules}</span>
+                <span style="font-size:12px;color:var(--mud-palette-text-secondary);"> active</span>
+            </td>
+            <td>
+                <span class="mud-chip ${inbox.runMode==='DryRun'?'amber':'success'}" style="font-size:11px;padding:2px 8px;">
+                    <span class="material-icons" style="font-size:12px;">${inbox.runMode==='DryRun'?'science':'check_circle'}</span>
+                    ${inbox.runMode}
+                </span>
+            </td>
+            <td>
+                <div style="font-size:13px;">${inbox.lastRun}</div>
+                <div style="font-size:11px;color:var(--mud-palette-text-secondary);">${inbox.lastRunEmails} emails</div>
+                <div class="sparkline" style="margin-top:4px;">
+                    ${renderSparkline(inbox.sparkline)}
+                </div>
+            </td>
+            <td>
+                <span class="mud-chip ${inbox.status==='healthy'?'success':inbox.status==='warning'?'warning':'error'}">
+                    ${inbox.statusLabel}
+                </span>
+            </td>
+            <td>
+                <button class="icon-btn" style="color:var(--mud-palette-text-secondary);" onclick="event.stopPropagation();">
+                    <span class="material-icons">more_vert</span>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    document.getElementById('table-footer-text').textContent = `Showing ${visibleInboxes.length} inbox${visibleInboxes.length !== 1 ? 'es' : ''}`;
+    document.getElementById('inbox-count-stat').textContent = visibleInboxes.length;
+}
+
+function toggleRole() {
+    isAdmin = !isAdmin;
+    const toggle = document.getElementById('role-toggle');
+    const label = document.getElementById('role-label');
+    const sidebarRole = document.getElementById('sidebar-role');
+
+    if (isAdmin) {
+        toggle.classList.add('active');
+        label.textContent = 'Admin';
+        document.body.className = 'admin-view';
+        sidebarRole.textContent = 'ClaudeInboxAdmin';
+        sidebarRole.className = 'mud-chip primary';
+    } else {
+        toggle.classList.remove('active');
+        label.textContent = 'User';
+        document.body.className = 'user-view';
+        sidebarRole.textContent = 'ClaudeInboxUser';
+        sidebarRole.className = 'mud-chip default';
+    }
+    renderInboxes();
+}
+
+// Initial render
+renderInboxes();
+</script>
+
+</body>
+</html>

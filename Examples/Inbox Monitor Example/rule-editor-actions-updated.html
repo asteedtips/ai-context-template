@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Editor + Action Config - UI Mockup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --mud-primary: #594AE2;
+            --mud-primary-dark: #4636c7;
+            --mud-primary-light: #7e72e8;
+            --mud-secondary: #ff4081;
+            --mud-surface: #ffffff;
+            --mud-bg: #f5f5f5;
+            --mud-appbar: #594AE2;
+            --mud-drawer-bg: #1e1e2d;
+            --mud-drawer-text: #b8b8cc;
+            --mud-text: #424242;
+            --mud-text-sec: #757575;
+            --mud-success: #00c853;
+            --mud-warning: #ff9800;
+            --mud-error: #f44336;
+            --mud-info: #2196f3;
+            --mud-divider: rgba(0,0,0,0.12);
+            --mud-el1: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
+            --mud-el2: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12);
+            --mud-el4: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12);
+            --mud-el8: 0 5px 5px -3px rgba(0,0,0,.2), 0 8px 10px 1px rgba(0,0,0,.14), 0 3px 14px 2px rgba(0,0,0,.12);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Roboto', sans-serif; background: var(--mud-bg); color: var(--mud-text); }
+
+        /* Layout */
+        .layout { display: flex; min-height: 100vh; }
+        .drawer {
+            width: 260px; background: var(--mud-drawer-bg); color: var(--mud-drawer-text); flex-shrink: 0;
+            display: flex; flex-direction: column;
+        }
+        .drawer-header {
+            padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .drawer-logo { width:36px;height:36px;background:var(--mud-primary);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px; }
+        .brand { font-size: 18px; font-weight: 500; color: #fff; }
+        .brand-sub { font-size: 11px; color: var(--mud-drawer-text); }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+            cursor: pointer; font-size: 14px; color: var(--mud-drawer-text); text-decoration: none;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.06); }
+        .nav-item.active { background: rgba(89,74,226,0.25); color: #fff; }
+        .nav-item .material-icons { font-size: 20px; opacity: 0.7; }
+        .nav-group-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #fff;
+        }
+        .nav-group-children .nav-item { padding-left: 52px; }
+
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .appbar {
+            height: 56px; background: var(--mud-appbar); color: #fff;
+            display: flex; align-items: center; padding: 0 24px; box-shadow: var(--mud-el4); z-index: 10; gap: 16px;
+        }
+        .appbar-title { font-size: 18px; font-weight: 500; flex: 1; }
+        .appbar-breadcrumb { font-size: 13px; opacity: 0.8; }
+        .appbar-breadcrumb span { opacity: 0.6; }
+        .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+        /* Shared Components */
+        .mud-card { background: var(--mud-surface); border-radius: 4px; box-shadow: var(--mud-el1); overflow: hidden; }
+        .mud-card-header { padding: 16px 16px 8px; display: flex; align-items: center; justify-content: space-between; }
+        .mud-card-header-title { font-size: 14px; font-weight: 500; color: var(--mud-text-sec); text-transform: uppercase; letter-spacing: 0.02em; }
+        .mud-card-content { padding: 8px 16px 16px; }
+
+        .mud-btn {
+            display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+            border: none; border-radius: 4px; font-size: 13px; font-weight: 500;
+            text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
+            transition: all 0.15s; font-family: 'Roboto', sans-serif;
+        }
+        .mud-btn .material-icons { font-size: 18px; }
+        .mud-btn-primary { background: var(--mud-primary); color: #fff; }
+        .mud-btn-primary:hover { background: var(--mud-primary-dark); box-shadow: var(--mud-el2); }
+        .mud-btn-outlined { background: transparent; color: var(--mud-primary); border: 1px solid rgba(89,74,226,0.5); }
+        .mud-btn-outlined:hover { background: rgba(89,74,226,0.04); }
+        .mud-btn-text { background: transparent; color: var(--mud-primary); border: none; }
+        .mud-btn-text:hover { background: rgba(89,74,226,0.04); }
+        .mud-btn-sm { padding: 4px 10px; font-size: 12px; }
+        .mud-btn-error { background: var(--mud-error); color: #fff; }
+        .mud-btn-success { background: var(--mud-success); color: #fff; }
+
+        .icon-btn {
+            width: 32px; height: 32px; border-radius: 50%; border: none;
+            background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s; color: var(--mud-text-sec);
+        }
+        .icon-btn:hover { background: rgba(0,0,0,0.06); }
+        .icon-btn.danger:hover { background: rgba(244,67,54,0.08); color: var(--mud-error); }
+
+        .mud-chip {
+            display: inline-flex; align-items: center; padding: 4px 10px;
+            border-radius: 16px; font-size: 12px; font-weight: 500; gap: 4px;
+        }
+        .mud-chip .material-icons { font-size: 14px; }
+        .mud-chip.success { background: #e8f5e9; color: #2e7d32; }
+        .mud-chip.warning { background: #fff3e0; color: #e65100; }
+        .mud-chip.error { background: #ffebee; color: #c62828; }
+        .mud-chip.info { background: #e3f2fd; color: #1565c0; }
+        .mud-chip.default { background: #f5f5f5; color: #616161; }
+        .mud-chip.primary { background: #ede7f6; color: #4527a0; }
+
+        /* Form fields */
+        .mud-field { margin-bottom: 16px; }
+        .mud-field-label {
+            font-size: 12px; font-weight: 500; color: var(--mud-text-sec);
+            margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .mud-input, .mud-select {
+            width: 100%; padding: 10px 12px; border: 1px solid var(--mud-divider);
+            border-radius: 4px; font-size: 14px; font-family: 'Roboto', sans-serif;
+            color: var(--mud-text); background: #fff; transition: border-color 0.15s;
+        }
+        .mud-input:focus, .mud-select:focus { outline: none; border-color: var(--mud-primary); }
+        .mud-input::placeholder { color: #bbb; }
+        .mud-input-sm { padding: 6px 10px; font-size: 13px; }
+
+        .mud-switch {
+            display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;
+        }
+        .mud-switch-track {
+            width: 36px; height: 20px; background: #ccc; border-radius: 10px;
+            position: relative; transition: background 0.2s;
+        }
+        .mud-switch-track.on { background: var(--mud-primary); }
+        .mud-switch-track::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px; border-radius: 50%; background: #fff;
+            transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .mud-switch-track.on::after { transform: translateX(16px); }
+
+        /* Rule Header */
+        .rule-header {
+            display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+            padding-bottom: 16px; border-bottom: 1px solid var(--mud-divider);
+        }
+        .rule-header-back { display: flex; align-items: center; gap: 4px; color: var(--mud-primary); cursor: pointer; font-size: 14px; text-decoration: none; }
+        .rule-header-title { font-size: 22px; font-weight: 500; flex: 1; }
+
+        /* Tabs */
+        .mud-tabs { display: flex; border-bottom: 2px solid var(--mud-divider); margin-bottom: 24px; }
+        .mud-tab {
+            padding: 12px 20px; font-size: 14px; font-weight: 500; cursor: pointer;
+            color: var(--mud-text-sec); border-bottom: 2px solid transparent;
+            margin-bottom: -2px; transition: all 0.15s; text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .mud-tab:hover { color: var(--mud-text); }
+        .mud-tab.active { color: var(--mud-primary); border-bottom-color: var(--mud-primary); }
+
+        /* Condition Group Builder */
+        .condition-groups { display: flex; flex-direction: column; gap: 16px; }
+        .condition-group {
+            border: 1px solid var(--mud-divider); border-radius: 8px;
+            background: #fafafa; overflow: hidden;
+        }
+        .condition-group-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px; background: #f0f0f0; border-bottom: 1px solid var(--mud-divider);
+        }
+        .condition-group-header-left { display: flex; align-items: center; gap: 12px; }
+        .condition-group-label { font-size: 13px; font-weight: 500; color: var(--mud-text); }
+        .condition-group-operator {
+            display: inline-flex; border-radius: 4px; overflow: hidden;
+            border: 1px solid var(--mud-divider);
+        }
+        .op-btn {
+            padding: 3px 10px; font-size: 11px; font-weight: 600; cursor: pointer;
+            border: none; background: #fff; color: var(--mud-text-sec);
+            text-transform: uppercase; letter-spacing: 0.05em;
+            font-family: 'Roboto', sans-serif;
+        }
+        .op-btn.active { background: var(--mud-primary); color: #fff; }
+
+        .condition-rows { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+        .condition-row {
+            display: flex; align-items: center; gap: 8px;
+            background: #fff; padding: 8px 12px; border-radius: 4px;
+            border: 1px solid var(--mud-divider);
+        }
+        .condition-row select, .condition-row input {
+            padding: 6px 10px; border: 1px solid var(--mud-divider); border-radius: 4px;
+            font-size: 13px; font-family: 'Roboto', sans-serif; color: var(--mud-text);
+        }
+        .condition-row select:focus, .condition-row input:focus { outline: none; border-color: var(--mud-primary); }
+        .condition-field-select { width: 160px; }
+        .condition-op-select { width: 140px; }
+        .condition-value-input { flex: 1; min-width: 140px; }
+        .condition-row .op-label {
+            font-size: 11px; font-weight: 600; color: var(--mud-primary);
+            text-transform: uppercase; padding: 0 4px; min-width: 30px; text-align: center;
+        }
+
+        .and-connector {
+            display: flex; align-items: center; justify-content: center;
+            padding: 8px 0; position: relative;
+        }
+        .and-connector::before {
+            content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+            width: 1px; background: var(--mud-divider);
+        }
+        .and-connector-label {
+            position: relative; background: var(--mud-bg); padding: 2px 12px;
+            font-size: 11px; font-weight: 700; color: var(--mud-primary);
+            text-transform: uppercase; letter-spacing: 0.08em;
+            border: 1px solid var(--mud-divider); border-radius: 12px;
+        }
+
+        /* Action Pipeline */
+        .action-pipeline { display: flex; flex-direction: column; gap: 12px; }
+        .action-card {
+            border: 1px solid var(--mud-divider); border-radius: 8px;
+            background: #fff; overflow: hidden;
+        }
+        .action-card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px; background: #fafafa; border-bottom: 1px solid var(--mud-divider);
+            cursor: pointer;
+        }
+        .action-card-header-left { display: flex; align-items: center; gap: 10px; }
+        .action-order {
+            width: 24px; height: 24px; border-radius: 50%; background: var(--mud-primary);
+            color: #fff; font-size: 12px; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .action-type-badge {
+            display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+            border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .action-type-badge.outlook { background: #e3f2fd; color: #0d47a1; }
+        .action-type-badge.zoho-books { background: #e8f5e9; color: #1b5e20; }
+        .action-type-badge.zoho-crm { background: #fff3e0; color: #e65100; }
+        .action-type-badge.zoho-desk { background: #f3e5f5; color: #6a1b9a; }
+        .action-card-body { padding: 16px; }
+        .action-card.collapsed .action-card-body { display: none; }
+
+        /* Zoho Search Autocomplete */
+        .search-field { position: relative; }
+        .search-field .material-icons.search-icon {
+            position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+            font-size: 18px; color: var(--mud-text-sec);
+        }
+        .search-field input { padding-left: 36px; }
+        .search-results {
+            position: absolute; top: 100%; left: 0; right: 0; z-index: 20;
+            background: #fff; border: 1px solid var(--mud-divider); border-top: none;
+            border-radius: 0 0 4px 4px; box-shadow: var(--mud-el4); max-height: 200px; overflow-y: auto;
+        }
+        .search-result-item {
+            padding: 8px 12px; cursor: pointer; font-size: 13px;
+            border-bottom: 1px solid var(--mud-divider); display: flex; align-items: center; gap: 8px;
+        }
+        .search-result-item:hover { background: rgba(89,74,226,0.04); }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-meta { font-size: 11px; color: var(--mud-text-sec); }
+        .search-result-id { font-family: 'Roboto Mono', monospace; font-size: 10px; color: #999; }
+        .selected-entity {
+            display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+            background: #f5f5f5; border-radius: 4px; border: 1px solid var(--mud-divider);
+            font-size: 13px;
+        }
+        .selected-entity .material-icons { font-size: 16px; color: var(--mud-success); }
+        .selected-entity .remove { font-size: 16px; color: var(--mud-text-sec); cursor: pointer; margin-left: auto; }
+        .selected-entity .remove:hover { color: var(--mud-error); }
+
+        /* Regex helper */
+        .regex-helper {
+            background: #f8f9fa; border: 1px solid var(--mud-divider); border-radius: 4px;
+            padding: 8px 12px; margin-top: 4px;
+        }
+        .regex-helper-label { font-size: 11px; color: var(--mud-text-sec); font-weight: 500; margin-bottom: 4px; }
+        .regex-test {
+            font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--mud-text);
+            padding: 4px 8px; background: #fff; border: 1px solid var(--mud-divider);
+            border-radius: 3px; width: 100%;
+        }
+        .regex-match { color: var(--mud-success); font-weight: 500; }
+        .regex-no-match { color: var(--mud-error); font-size: 11px; }
+
+        /* Field grid */
+        .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .field-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .field-full { grid-column: 1 / -1; }
+
+        /* Section divider */
+        .section-divider {
+            display: flex; align-items: center; gap: 12px; margin: 16px 0 12px;
+            font-size: 12px; font-weight: 500; color: var(--mud-text-sec); text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--mud-divider); }
+
+        /* Nav Tabs within mockup */
+        .mockup-nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+            background: #1e1e2d; color: #fff; display: flex; align-items: center;
+            padding: 0 20px; height: 40px; font-size: 13px; gap: 4px;
+        }
+        .mockup-nav-label { font-weight: 500; margin-right: 12px; opacity: 0.6; }
+        .mockup-nav-tab {
+            padding: 8px 14px; cursor: pointer; border-radius: 4px 4px 0 0;
+            transition: background 0.15s; font-size: 12px; font-weight: 500;
+        }
+        .mockup-nav-tab:hover { background: rgba(255,255,255,0.1); }
+        .mockup-nav-tab.active { background: var(--mud-primary); }
+        body { padding-top: 40px; }
+
+        /* Scrollable sections */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* AI Suggestion Dialog Overlay */
+        .dialog-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 300;
+            align-items: center; justify-content: center;
+        }
+        .dialog-overlay.visible { display: flex; }
+        .dialog-box {
+            background: #fff; border-radius: 8px; box-shadow: var(--mud-el8);
+            width: 680px; max-height: 80vh; overflow-y: auto;
+        }
+        .dialog-header {
+            padding: 20px 24px 12px; border-bottom: 1px solid var(--mud-divider);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .dialog-header h3 { font-size: 18px; font-weight: 500; }
+        .dialog-body { padding: 16px 24px; }
+        .dialog-footer {
+            padding: 12px 24px; border-top: 1px solid var(--mud-divider);
+            display: flex; justify-content: flex-end; gap: 8px;
+        }
+        .suggestion-card {
+            border: 1px solid var(--mud-divider); border-radius: 6px;
+            padding: 16px; margin-bottom: 12px; cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .suggestion-card:hover { border-color: var(--mud-primary); box-shadow: 0 0 0 1px var(--mud-primary); }
+        .suggestion-card.selected { border-color: var(--mud-primary); background: rgba(89,74,226,0.03); box-shadow: 0 0 0 2px var(--mud-primary); }
+        .suggestion-card-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+        .suggestion-card-desc { font-size: 13px; color: var(--mud-text-sec); line-height: 1.5; margin-bottom: 8px; }
+        .suggestion-card-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+
+<!-- Mockup screen nav -->
+<div class="mockup-nav">
+    <span class="mockup-nav-label">MOCKUP SCREENS:</span>
+    <div class="mockup-nav-tab active" onclick="showScreen('rule-editor')">Rule Editor</div>
+    <div class="mockup-nav-tab" onclick="showScreen('outlook-actions')">Outlook Actions</div>
+    <div class="mockup-nav-tab" onclick="showScreen('zoho-books')">Zoho Books</div>
+    <div class="mockup-nav-tab" onclick="showScreen('zoho-crm')">Zoho CRM</div>
+    <div class="mockup-nav-tab" onclick="showScreen('zoho-desk')">Zoho Desk</div>
+</div>
+
+<!-- ===================== SCREEN 1: RULE EDITOR ===================== -->
+<div class="tab-content active" id="screen-rule-editor">
+<div class="layout">
+    <div class="drawer">
+        <div class="drawer-header">
+            <div class="drawer-logo">T</div>
+            <div><div class="brand">TIPS Portal</div><div class="brand-sub">True IP Solutions</div></div>
+        </div>
+        <div style="padding:8px 0;">
+            <a class="nav-item" href="#"><span class="material-icons">dashboard</span> Dashboard</a>
+            <div class="nav-group-header"><div style="display:flex;align-items:center;"><span class="material-icons" style="margin-right:12px;">smart_toy</span>Claudé</div><span class="material-icons" style="font-size:18px;">expand_more</span></div>
+            <div class="nav-group-children">
+                <a class="nav-item active" href="#"><span class="material-icons">inbox</span> Inbox Monitor</a>
+            </div>
+        </div>
+    </div>
+    <div class="main">
+        <div class="appbar">
+            <div class="appbar-title">
+                <span class="appbar-breadcrumb"><span>Claudé / Inbox Monitor / Accounting Inbox /</span> </span>Edit Rule
+            </div>
+        </div>
+        <div class="content">
+
+            <!-- Suggest Rules Banner (shown on inbox detail page, previewed here for context) -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#ede7f6,#e8eaf6);border-radius:6px;border:1px solid rgba(89,74,226,0.15);">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="material-icons" style="font-size:20px;color:var(--mud-primary);">auto_awesome</span>
+                    <div>
+                        <div style="font-size:14px;font-weight:500;">AI Rule Suggestions</div>
+                        <div style="font-size:12px;color:var(--mud-text-sec);">Analyze your last 50 processed emails and suggest new rules</div>
+                    </div>
+                </div>
+                <button class="mud-btn mud-btn-primary" onclick="document.getElementById('ai-suggest-dialog').classList.add('visible')">
+                    <span class="material-icons">auto_awesome</span> Suggest Rules
+                </button>
+            </div>
+
+            <!-- Rule Header -->
+            <div class="rule-header">
+                <a class="rule-header-back" href="#">
+                    <span class="material-icons">arrow_back</span> Back to Inbox
+                </a>
+                <div class="rule-header-title">Bill.com Payment Processing</div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="mud-switch">
+                        <span style="font-size:13px;">Enabled</span>
+                        <div class="mud-switch-track on"></div>
+                    </div>
+                    <button class="mud-btn mud-btn-outlined mud-btn-sm">
+                        <span class="material-icons">content_copy</span> Clone
+                    </button>
+                    <button class="mud-btn mud-btn-primary">
+                        <span class="material-icons">save</span> Save Rule
+                    </button>
+                </div>
+            </div>
+
+            <!-- Rule Settings -->
+            <div class="field-grid" style="margin-bottom:24px;">
+                <div class="mud-field">
+                    <div class="mud-field-label">Rule Name</div>
+                    <input class="mud-input" type="text" value="Bill.com Payment Processing">
+                </div>
+                <div class="mud-field" style="display:flex;gap:16px;">
+                    <div style="flex:1;">
+                        <div class="mud-field-label">Priority</div>
+                        <input class="mud-input" type="number" value="10" style="width:80px;">
+                    </div>
+                    <div style="flex:1;">
+                        <div class="mud-field-label">Stop Processing After Match</div>
+                        <div class="mud-switch" style="margin-top:8px;">
+                            <div class="mud-switch-track on"></div>
+                            <span style="font-size:13px;">Yes — skip lower priority rules</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mud-field field-full">
+                    <div class="mud-field-label">Description</div>
+                    <input class="mud-input" type="text" value="Detects Bill.com payment confirmations and logs them in Zoho Books" placeholder="Optional description...">
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="mud-tabs">
+                <div class="mud-tab active" onclick="showTab(this, 'conditions')">
+                    <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">filter_list</span>
+                    Conditions
+                    <span class="mud-chip primary" style="margin-left:6px;font-size:10px;padding:1px 6px;">2 groups</span>
+                </div>
+                <div class="mud-tab" onclick="showTab(this, 'actions')">
+                    <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:4px;">play_circle</span>
+                    Actions Pipeline
+                    <span class="mud-chip primary" style="margin-left:6px;font-size:10px;padding:1px 6px;">3 steps</span>
+                </div>
+            </div>
+
+            <!-- CONDITIONS TAB -->
+            <div class="tab-panel" id="tab-conditions">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <div style="font-size:13px;color:var(--mud-text-sec);">
+                        All groups must match (AND). Within each group, conditions use the group's operator.
+                    </div>
+                    <button class="mud-btn mud-btn-outlined mud-btn-sm" onclick="document.getElementById('new-group-area').style.display='block'">
+                        <span class="material-icons">add</span> Add Group
+                    </button>
+                </div>
+
+                <div class="condition-groups">
+                    <!-- GROUP 1 -->
+                    <div class="condition-group">
+                        <div class="condition-group-header">
+                            <div class="condition-group-header-left">
+                                <span style="font-size:12px;font-weight:600;color:var(--mud-primary);">GROUP 1</span>
+                                <span class="condition-group-label">Sender Match</span>
+                                <span style="font-size:12px;color:var(--mud-text-sec);">— match</span>
+                                <div class="condition-group-operator">
+                                    <button class="op-btn" onclick="setOp(this,'and')">AND</button>
+                                    <button class="op-btn active" onclick="setOp(this,'or')">OR</button>
+                                </div>
+                                <span style="font-size:12px;color:var(--mud-text-sec);">of these conditions</span>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="icon-btn" title="Add condition"><span class="material-icons" style="font-size:18px;">add</span></button>
+                                <button class="icon-btn danger" title="Delete group"><span class="material-icons" style="font-size:18px;">delete</span></button>
+                            </div>
+                        </div>
+                        <div class="condition-rows">
+                            <div class="condition-row">
+                                <span style="font-size:11px;color:var(--mud-text-sec);min-width:20px;">1.</span>
+                                <select class="condition-field-select">
+                                    <option selected>Sender</option>
+                                    <option>Sender Name</option>
+                                    <option>Subject</option>
+                                    <option>Body</option>
+                                    <option>Has Attachment</option>
+                                    <option>Importance</option>
+                                    <option>To Recipients</option>
+                                    <option>CC Recipients</option>
+                                    <option>Received Date</option>
+                                    <option>Categories</option>
+                                    <option>Is Read</option>
+                                </select>
+                                <select class="condition-op-select">
+                                    <option selected>Contains</option>
+                                    <option>Not Contains</option>
+                                    <option>Starts With</option>
+                                    <option>Ends With</option>
+                                    <option>Equals</option>
+                                    <option>Not Equals</option>
+                                    <option>Regex</option>
+                                </select>
+                                <input class="condition-value-input" type="text" value="bill.com" placeholder="Value...">
+                                <button class="icon-btn" title="Case sensitive"><span class="material-icons" style="font-size:16px;opacity:0.3;">text_fields</span></button>
+                                <button class="icon-btn danger"><span class="material-icons" style="font-size:16px;">close</span></button>
+                            </div>
+                            <div style="text-align:center;"><span class="condition-row .op-label" style="font-size:11px;font-weight:600;color:var(--mud-primary);">OR</span></div>
+                            <div class="condition-row">
+                                <span style="font-size:11px;color:var(--mud-text-sec);min-width:20px;">2.</span>
+                                <select class="condition-field-select">
+                                    <option selected>Sender</option>
+                                </select>
+                                <select class="condition-op-select">
+                                    <option selected>Contains</option>
+                                </select>
+                                <input class="condition-value-input" type="text" value="noreply@billpayment.com" placeholder="Value...">
+                                <button class="icon-btn" title="Case sensitive"><span class="material-icons" style="font-size:16px;opacity:0.3;">text_fields</span></button>
+                                <button class="icon-btn danger"><span class="material-icons" style="font-size:16px;">close</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AND connector between groups -->
+                    <div class="and-connector">
+                        <div class="and-connector-label">AND</div>
+                    </div>
+
+                    <!-- GROUP 2 -->
+                    <div class="condition-group">
+                        <div class="condition-group-header">
+                            <div class="condition-group-header-left">
+                                <span style="font-size:12px;font-weight:600;color:var(--mud-primary);">GROUP 2</span>
+                                <span class="condition-group-label">Content Match</span>
+                                <span style="font-size:12px;color:var(--mud-text-sec);">— match</span>
+                                <div class="condition-group-operator">
+                                    <button class="op-btn active">AND</button>
+                                    <button class="op-btn">OR</button>
+                                </div>
+                                <span style="font-size:12px;color:var(--mud-text-sec);">of these conditions</span>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="icon-btn"><span class="material-icons" style="font-size:18px;">add</span></button>
+                                <button class="icon-btn danger"><span class="material-icons" style="font-size:18px;">delete</span></button>
+                            </div>
+                        </div>
+                        <div class="condition-rows">
+                            <div class="condition-row">
+                                <span style="font-size:11px;color:var(--mud-text-sec);min-width:20px;">1.</span>
+                                <select class="condition-field-select">
+                                    <option>Sender</option>
+                                    <option>Sender Name</option>
+                                    <option selected>Subject</option>
+                                </select>
+                                <select class="condition-op-select">
+                                    <option selected>Contains</option>
+                                </select>
+                                <input class="condition-value-input" type="text" value="payment" placeholder="Value...">
+                                <button class="icon-btn"><span class="material-icons" style="font-size:16px;opacity:0.3;">text_fields</span></button>
+                                <button class="icon-btn danger"><span class="material-icons" style="font-size:16px;">close</span></button>
+                            </div>
+                            <div style="text-align:center;"><span style="font-size:11px;font-weight:600;color:var(--mud-primary);">AND</span></div>
+                            <div class="condition-row">
+                                <span style="font-size:11px;color:var(--mud-text-sec);min-width:20px;">2.</span>
+                                <select class="condition-field-select">
+                                    <option>Sender</option>
+                                    <option>Subject</option>
+                                    <option selected>Body</option>
+                                </select>
+                                <select class="condition-op-select">
+                                    <option>Contains</option>
+                                    <option>Not Contains</option>
+                                    <option>Starts With</option>
+                                    <option>Ends With</option>
+                                    <option>Equals</option>
+                                    <option>Not Equals</option>
+                                    <option selected>Regex</option>
+                                </select>
+                                <input class="condition-value-input" type="text" value="\$[\d,]+\.\d{2}" placeholder="Regex pattern..." style="font-family:'Roboto Mono',monospace;font-size:12px;">
+                                <button class="icon-btn"><span class="material-icons" style="font-size:16px;opacity:0.3;">text_fields</span></button>
+                                <button class="icon-btn danger"><span class="material-icons" style="font-size:16px;">close</span></button>
+                            </div>
+                            <div class="regex-helper">
+                                <div class="regex-helper-label">REGEX TEST</div>
+                                <div style="display:flex;gap:8px;align-items:center;">
+                                    <input class="regex-test" type="text" value="Your payment of $5,250.00 has been processed" placeholder="Paste sample text to test...">
+                                    <span class="regex-match">Match: $5,250.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="new-group-area" style="display:none;text-align:center;padding:20px;border:2px dashed var(--mud-divider);border-radius:8px;color:var(--mud-text-sec);font-size:13px;">
+                        <span class="material-icons" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3;">add_circle_outline</span>
+                        New condition group would appear here
+                    </div>
+                </div>
+
+                <!-- Evaluation Preview -->
+                <div class="mud-card" style="margin-top:24px;">
+                    <div class="mud-card-header">
+                        <span class="mud-card-header-title">Evaluation Logic Preview</span>
+                    </div>
+                    <div class="mud-card-content">
+                        <div style="font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.8;color:var(--mud-text);background:#f8f9fa;padding:12px 16px;border-radius:4px;">
+                            <span style="color:var(--mud-primary);font-weight:500;">(</span>
+                            Sender <span style="color:#e65100;">contains</span> "bill.com"
+                            <span style="color:var(--mud-primary);font-weight:600;"> OR </span>
+                            Sender <span style="color:#e65100;">contains</span> "noreply@billpayment.com"
+                            <span style="color:var(--mud-primary);font-weight:500;">)</span>
+                            <br>
+                            <span style="color:var(--mud-primary);font-weight:700;">AND</span>
+                            <br>
+                            <span style="color:var(--mud-primary);font-weight:500;">(</span>
+                            Subject <span style="color:#e65100;">contains</span> "payment"
+                            <span style="color:var(--mud-primary);font-weight:600;"> AND </span>
+                            Body <span style="color:#e65100;">matches</span> <span style="font-style:italic;">/\$[\d,]+\.\d{2}/</span>
+                            <span style="color:var(--mud-primary);font-weight:500;">)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTIONS TAB (hidden by default) -->
+            <div class="tab-panel" id="tab-actions" style="display:none;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <div style="font-size:13px;color:var(--mud-text-sec);">
+                        Actions execute in order when the rule matches. Drag to reorder.
+                    </div>
+                    <button class="mud-btn mud-btn-outlined mud-btn-sm">
+                        <span class="material-icons">add</span> Add Action
+                    </button>
+                </div>
+
+                <div class="action-pipeline">
+                    <!-- ACTION 1: Zoho Books Payment -->
+                    <div class="action-card">
+                        <div class="action-card-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                            <div class="action-card-header-left">
+                                <span class="material-icons" style="font-size:18px;color:var(--mud-text-sec);cursor:grab;">drag_indicator</span>
+                                <div class="action-order">1</div>
+                                <span class="action-type-badge zoho-books">
+                                    <span class="material-icons" style="font-size:12px;">payments</span>
+                                    Zoho Books — Log Payment
+                                </span>
+                                <span style="font-size:13px;color:var(--mud-text-sec);">Extract amount from body, match to invoice</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <span class="mud-chip success" style="font-size:10px;padding:2px 6px;">Configured</span>
+                                <span class="material-icons" style="font-size:18px;color:var(--mud-text-sec);">expand_more</span>
+                            </div>
+                        </div>
+                        <div class="action-card-body">
+                            <p style="font-size:12px;color:var(--mud-text-sec);margin-bottom:12px;font-style:italic;">See Zoho Books tab for full configuration detail</p>
+                            <div class="field-grid">
+                                <div class="mud-field"><div class="mud-field-label">Invoice # Source</div><select class="mud-select"><option>Subject (regex)</option><option>Body (regex)</option></select></div>
+                                <div class="mud-field"><div class="mud-field-label">Invoice # Regex</div><input class="mud-input" value="INV-\d+" style="font-family:'Roboto Mono',monospace;font-size:12px;"></div>
+                                <div class="mud-field"><div class="mud-field-label">Amount Source</div><select class="mud-select"><option>Body (regex)</option><option>Subject (regex)</option></select></div>
+                                <div class="mud-field"><div class="mud-field-label">Amount Regex</div><input class="mud-input" value="\$[\d,]+\.\d{2}" style="font-family:'Roboto Mono',monospace;font-size:12px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTION 2: Outlook Move -->
+                    <div class="action-card">
+                        <div class="action-card-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                            <div class="action-card-header-left">
+                                <span class="material-icons" style="font-size:18px;color:var(--mud-text-sec);cursor:grab;">drag_indicator</span>
+                                <div class="action-order">2</div>
+                                <span class="action-type-badge outlook">
+                                    <span class="material-icons" style="font-size:12px;">drive_file_move</span>
+                                    Outlook — Move to Folder
+                                </span>
+                                <span style="font-size:13px;color:var(--mud-text-sec);">Move to TIPS/AR/Payments</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <span class="mud-chip success" style="font-size:10px;padding:2px 6px;">Configured</span>
+                                <span class="material-icons" style="font-size:18px;color:var(--mud-text-sec);">expand_more</span>
+                            </div>
+                        </div>
+                        <div class="action-card-body">
+                            <div class="mud-field">
+                                <div class="mud-field-label">Destination Folder</div>
+                                <div class="selected-entity">
+                                    <span class="material-icons">folder</span>
+                                    <span>TIPS / AR / Payments</span>
+                                    <span class="search-result-id">AAMkAGQ5...</span>
+                                    <span class="material-icons remove">close</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTION 3: Outlook Mark Read -->
+                    <div class="action-card">
+                        <div class="action-card-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                            <div class="action-card-header-left">
+                                <span class="material-icons" style="font-size:18px;color:var(--mud-text-sec);cursor:grab;">drag_indicator</span>
+                                <div class="action-order">3</div>
+                                <span class="action-type-badge outlook">
+                                    <span class="material-icons" style="font-size:12px;">mark_email_read</span>
+                                    Outlook — Mark as Read
+                                </span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <span class="mud-chip success" style="font-size:10px;padding:2px 6px;">Configured</span>
+                                <span class="material-icons" style="font-size:18px;color:var(--mud-text-sec);">expand_more</span>
+                            </div>
+                        </div>
+                        <div class="action-card-body">
+                            <div style="font-size:13px;color:var(--mud-text-sec);">No additional configuration needed. Email will be marked as read after processing.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- AI Suggestion Dialog -->
+<div class="dialog-overlay" id="ai-suggest-dialog">
+    <div class="dialog-box">
+        <div class="dialog-header">
+            <h3><span class="material-icons" style="font-size:20px;vertical-align:middle;margin-right:6px;color:var(--mud-primary);">auto_awesome</span> AI Rule Suggestions</h3>
+            <button class="icon-btn" onclick="document.getElementById('ai-suggest-dialog').classList.remove('visible')">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+        <div class="dialog-body">
+            <div style="font-size:13px;color:var(--mud-text-sec);margin-bottom:16px;">
+                Based on the last 50 processed emails from <strong>accounting@trueipsolutions.com</strong>, Claude identified 3 patterns that could be automated with new rules. Select one to open it in the rule editor for review and customization.
+            </div>
+
+            <!-- Suggestion 1 -->
+            <div class="suggestion-card selected" onclick="selectSuggestion(this)">
+                <div class="suggestion-card-title">REPAY Payment Confirmations</div>
+                <div class="suggestion-card-desc">
+                    Detected 8 emails from noreply@repay.com with subject containing "Payment Confirmation". These follow a consistent pattern with amount and invoice number in the body. Could auto-log payments in Zoho Books and file to AR/Payments folder.
+                </div>
+                <div class="suggestion-card-meta">
+                    <span class="mud-chip info" style="font-size:10px;padding:2px 6px;">8 emails matched</span>
+                    <span class="mud-chip default" style="font-size:10px;padding:2px 6px;">Sender: noreply@repay.com</span>
+                    <span class="mud-chip default" style="font-size:10px;padding:2px 6px;">Actions: Log Payment, Move, Mark Read</span>
+                </div>
+            </div>
+
+            <!-- Suggestion 2 -->
+            <div class="suggestion-card" onclick="selectSuggestion(this)">
+                <div class="suggestion-card-title">Vendor Invoice Notifications</div>
+                <div class="suggestion-card-desc">
+                    Found 6 emails from various vendors (Graybar, Anixter, ADI) with "Invoice" in the subject and PDF attachments. Could flag for review and apply an "Invoice Review" category.
+                </div>
+                <div class="suggestion-card-meta">
+                    <span class="mud-chip info" style="font-size:10px;padding:2px 6px;">6 emails matched</span>
+                    <span class="mud-chip default" style="font-size:10px;padding:2px 6px;">Multiple senders</span>
+                    <span class="mud-chip default" style="font-size:10px;padding:2px 6px;">Actions: Flag, Categorize</span>
+                </div>
+            </div>
+
+            <!-- Suggestion 3 -->
+            <div class="suggestion-card" onclick="selectSuggestion(this)">
+                <div class="suggestion-card-title">E-Rate Correspondence Filing</div>
+                <div class="suggestion-card-desc">
+                    Identified 4 emails from USAC and school district contacts referencing E-Rate FRNs. Could auto-move to an E-Rate folder and create a CRM note on the matching deal.
+                </div>
+                <div class="suggestion-card-meta">
+                    <span class="mud-chip info" style="font-size:10px;padding:2px 6px;">4 emails matched</span>
+                    <span class="mud-chip default" style="font-size:10px;padding:2px 6px;">Senders: *@usac.org, school domains</span>
+                    <span class="mud-chip default" style="font-size:10px;padding:2px 6px;">Actions: Move to Folder, CRM Note</span>
+                </div>
+            </div>
+        </div>
+        <div class="dialog-footer">
+            <button class="mud-btn mud-btn-text" onclick="document.getElementById('ai-suggest-dialog').classList.remove('visible')">Cancel</button>
+            <button class="mud-btn mud-btn-primary" onclick="alert('Opens the selected suggestion as a pre-filled rule editor form for review and customization.')">
+                <span class="material-icons">edit</span> Open in Rule Editor
+            </button>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ===================== SCREEN 2: OUTLOOK ACTIONS ===================== -->
+<div class="tab-content" id="screen-outlook-actions">
+<div style="max-width:900px;margin:0 auto;padding:24px;">
+    <h2 style="font-size:20px;font-weight:500;margin-bottom:4px;">Outlook Action Types</h2>
+    <p style="font-size:13px;color:var(--mud-text-sec);margin-bottom:24px;">Each action type shown as it would appear inside the Action Pipeline editor</p>
+
+    <div class="action-pipeline">
+        <!-- Move to Folder -->
+        <div class="action-card">
+            <div class="action-card-header">
+                <div class="action-card-header-left">
+                    <div class="action-order">1</div>
+                    <span class="action-type-badge outlook"><span class="material-icons" style="font-size:12px;">drive_file_move</span> Move to Folder</span>
+                </div>
+            </div>
+            <div class="action-card-body">
+                <div class="mud-field">
+                    <div class="mud-field-label">Destination Folder</div>
+                    <div class="search-field">
+                        <span class="material-icons search-icon">search</span>
+                        <input class="mud-input" style="padding-left:36px;" type="text" placeholder="Search mailbox folders..." value="">
+                    </div>
+                    <div class="search-results" style="position:relative;margin-top:4px;">
+                        <div class="search-result-item">
+                            <span class="material-icons" style="font-size:16px;color:var(--mud-warning);">folder</span>
+                            <div>
+                                <div>Inbox</div>
+                            </div>
+                        </div>
+                        <div class="search-result-item" style="padding-left:28px;">
+                            <span class="material-icons" style="font-size:16px;color:var(--mud-info);">folder</span>
+                            <div>
+                                <div>TIPS</div>
+                            </div>
+                        </div>
+                        <div class="search-result-item" style="padding-left:44px;">
+                            <span class="material-icons" style="font-size:16px;color:var(--mud-info);">folder</span>
+                            <div>
+                                <div>AR</div>
+                                <div class="search-result-meta">TIPS / AR</div>
+                            </div>
+                        </div>
+                        <div class="search-result-item" style="padding-left:60px;background:rgba(89,74,226,0.04);">
+                            <span class="material-icons" style="font-size:16px;color:var(--mud-primary);">folder</span>
+                            <div>
+                                <div style="font-weight:500;">Payments</div>
+                                <div class="search-result-meta">TIPS / AR / Payments</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">Folders loaded from mailbox via Graph API. Nested tree view.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flag -->
+        <div class="action-card">
+            <div class="action-card-header">
+                <div class="action-card-header-left">
+                    <div class="action-order">2</div>
+                    <span class="action-type-badge outlook"><span class="material-icons" style="font-size:12px;">flag</span> Flag Email</span>
+                </div>
+            </div>
+            <div class="action-card-body">
+                <div class="field-grid">
+                    <div class="mud-field">
+                        <div class="mud-field-label">Flag Status</div>
+                        <select class="mud-select">
+                            <option selected>Flagged</option>
+                            <option>Complete</option>
+                            <option>Not Flagged</option>
+                        </select>
+                    </div>
+                    <div class="mud-field">
+                        <div class="mud-field-label">Due Date (optional)</div>
+                        <input class="mud-input" type="date" value="">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Apply Category -->
+        <div class="action-card">
+            <div class="action-card-header">
+                <div class="action-card-header-left">
+                    <div class="action-order">3</div>
+                    <span class="action-type-badge outlook"><span class="material-icons" style="font-size:12px;">label</span> Apply Category</span>
+                </div>
+            </div>
+            <div class="action-card-body">
+                <div class="mud-field">
+                    <div class="mud-field-label">Categories (select multiple)</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                        <span class="mud-chip primary" style="cursor:pointer;">Auto Processed <span class="material-icons" style="font-size:12px;">close</span></span>
+                        <span class="mud-chip success" style="cursor:pointer;">Payment <span class="material-icons" style="font-size:12px;">close</span></span>
+                    </div>
+                    <div class="search-field">
+                        <span class="material-icons search-icon">search</span>
+                        <input class="mud-input" style="padding-left:36px;" type="text" placeholder="Search or add category...">
+                    </div>
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">Categories loaded from mailbox's master category list via Graph API. Type to add new.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mark Read -->
+        <div class="action-card">
+            <div class="action-card-header">
+                <div class="action-card-header-left">
+                    <div class="action-order">4</div>
+                    <span class="action-type-badge outlook"><span class="material-icons" style="font-size:12px;">mark_email_read</span> Mark as Read</span>
+                </div>
+            </div>
+            <div class="action-card-body">
+                <div style="font-size:13px;color:var(--mud-text-sec);padding:8px 0;">
+                    <span class="material-icons" style="font-size:16px;vertical-align:middle;color:var(--mud-success);">check_circle</span>
+                    No configuration needed. The email will be marked as read after all actions complete.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ===================== SCREEN 3: ZOHO BOOKS ===================== -->
+<div class="tab-content" id="screen-zoho-books">
+<div style="max-width:900px;margin:0 auto;padding:24px;">
+    <h2 style="font-size:20px;font-weight:500;margin-bottom:4px;">Zoho Books — Log Payment Action</h2>
+    <p style="font-size:13px;color:var(--mud-text-sec);margin-bottom:24px;">Full configuration for extracting payment data from emails and recording in Zoho Books</p>
+
+    <div class="action-card">
+        <div class="action-card-header">
+            <div class="action-card-header-left">
+                <span class="action-type-badge zoho-books"><span class="material-icons" style="font-size:12px;">payments</span> Zoho Books — Log Payment</span>
+            </div>
+        </div>
+        <div class="action-card-body">
+
+            <!-- Step 1: Extraction Config -->
+            <div class="section-divider">Step 1 — Extract Payment Data from Email</div>
+            <div class="field-grid">
+                <div class="mud-field">
+                    <div class="mud-field-label">Invoice Number Source</div>
+                    <select class="mud-select">
+                        <option>Subject</option>
+                        <option selected>Body</option>
+                    </select>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Invoice Number Regex</div>
+                    <input class="mud-input" value="INV-\d+" style="font-family:'Roboto Mono',monospace;font-size:12px;">
+                    <div class="regex-helper" style="margin-top:4px;">
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input class="regex-test" value="Payment for INV-4523 processed" placeholder="Test sample...">
+                            <span class="regex-match" style="white-space:nowrap;">Match: INV-4523</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Amount Source</div>
+                    <select class="mud-select">
+                        <option>Subject</option>
+                        <option selected>Body</option>
+                    </select>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Amount Regex</div>
+                    <input class="mud-input" value="\$[\d,]+\.\d{2}" style="font-family:'Roboto Mono',monospace;font-size:12px;">
+                    <div class="regex-helper" style="margin-top:4px;">
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input class="regex-test" value="Amount: $5,250.00 deposited to account" placeholder="Test sample...">
+                            <span class="regex-match" style="white-space:nowrap;">Match: $5,250.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Zoho Books Matching -->
+            <div class="section-divider">Step 2 — Match Invoice in Zoho Books</div>
+            <p style="font-size:12px;color:var(--mud-text-sec);margin-bottom:12px;">
+                The function uses the extracted invoice number to search Zoho Books via
+                <code style="background:#f0f0f0;padding:2px 4px;border-radius:2px;font-size:11px;">GET /invoices?invoice_number={extracted}</code>.
+                It validates: invoice exists, status is Open or Overdue, and payment amount matches the balance due.
+            </p>
+            <div class="mud-card" style="background:#f8f9fa;border:1px solid var(--mud-divider);">
+                <div class="mud-card-content" style="padding:12px 16px;">
+                    <div style="font-size:12px;font-weight:500;color:var(--mud-text);margin-bottom:8px;">VALIDATION PIPELINE</div>
+                    <div style="display:flex;gap:8px;align-items:center;font-size:12px;">
+                        <span class="mud-chip info" style="font-size:11px;">1. Invoice Exists?</span>
+                        <span class="material-icons" style="font-size:14px;color:var(--mud-text-sec);">arrow_forward</span>
+                        <span class="mud-chip info" style="font-size:11px;">2. Status = Open/Overdue?</span>
+                        <span class="material-icons" style="font-size:14px;color:var(--mud-text-sec);">arrow_forward</span>
+                        <span class="mud-chip info" style="font-size:11px;">3. Amount = Balance Due?</span>
+                        <span class="material-icons" style="font-size:14px;color:var(--mud-text-sec);">arrow_forward</span>
+                        <span class="mud-chip success" style="font-size:11px;">Record Payment</span>
+                    </div>
+                    <div style="margin-top:8px;font-size:11px;color:var(--mud-text-sec);">
+                        If any step fails, the email is flagged in the activity log with the failure reason. No partial payments — amount must equal balance due exactly.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Payment Recording Config -->
+            <div class="section-divider">Step 3 — Record Payment in Zoho Books</div>
+            <div class="field-grid">
+                <div class="mud-field">
+                    <div class="mud-field-label">Zoho Books Organization</div>
+                    <div class="selected-entity">
+                        <span class="material-icons" style="color:var(--mud-success);">business</span>
+                        <span>True IP Solutions LLC</span>
+                        <span class="search-result-id">Org ID: 60005679923</span>
+                    </div>
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">Loaded from SettingsService → Zoho.Books.OrgId</div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Payment Mode</div>
+                    <select class="mud-select">
+                        <option selected>Bank Remittance</option>
+                        <option>Check</option>
+                        <option>ACH</option>
+                        <option>Credit Card</option>
+                        <option>Cash</option>
+                    </select>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Payment Date Rule</div>
+                    <select class="mud-select">
+                        <option selected>Email Received Date + Offset</option>
+                        <option>Today's Date</option>
+                        <option>Extract from Body (regex)</option>
+                    </select>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Date Offset (business days)</div>
+                    <input class="mud-input" type="number" value="2" style="width:80px;">
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">Bill.com deposits take 2 business days</div>
+                </div>
+                <div class="mud-field field-full">
+                    <div class="mud-field-label">Payment Reference Format</div>
+                    <input class="mud-input" value="{date} {provider} - {invoice_number}" style="font-family:'Roboto Mono',monospace;font-size:12px;">
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">
+                        Variables: <code>{date}</code> <code>{provider}</code> <code>{invoice_number}</code> <code>{amount}</code> <code>{sender}</code>
+                    </div>
+                </div>
+            </div>
+
+            <div style="font-size:12px;color:var(--mud-text-sec);background:#fff3e0;padding:10px 12px;border-radius:4px;border-left:3px solid var(--mud-warning);margin-top:8px;">
+                <strong>API Call:</strong> <code>POST /customerpayments</code> with invoice line item, amount, payment date, reference, and payment mode. Uses OAuth2 token refreshed via <code>ZohoBooksService</code>.
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ===================== SCREEN 4: ZOHO CRM ===================== -->
+<div class="tab-content" id="screen-zoho-crm">
+<div style="max-width:900px;margin:0 auto;padding:24px;">
+    <h2 style="font-size:20px;font-weight:500;margin-bottom:4px;">Zoho CRM — Attach Note to Deal</h2>
+    <p style="font-size:13px;color:var(--mud-text-sec);margin-bottom:4px;">Find a matching deal and attach the email as a note with an AI-generated summary. No deal field updates in V1.</p>
+    <p style="font-size:12px;margin-bottom:24px;"><span class="mud-chip success" style="font-size:11px;">V1: Find Deal + Attach Note</span> <span class="mud-chip default" style="font-size:11px;margin-left:4px;">V2: Deal Field Updates</span></p>
+
+    <div class="action-card">
+        <div class="action-card-header">
+            <div class="action-card-header-left">
+                <span class="action-type-badge zoho-crm"><span class="material-icons" style="font-size:12px;">note_add</span> Zoho CRM — Attach Note</span>
+            </div>
+        </div>
+        <div class="action-card-body">
+
+            <div class="section-divider">Step 1 — Find the Deal</div>
+            <p style="font-size:12px;color:var(--mud-text-sec);margin-bottom:12px;">
+                Search Zoho CRM Deals module. The function calls
+                <code style="background:#f0f0f0;padding:2px 4px;border-radius:2px;font-size:11px;">GET /crm/v6/Deals/search?criteria=(Deal_Name:contains:{value})</code>
+            </p>
+
+            <div class="field-grid">
+                <div class="mud-field">
+                    <div class="mud-field-label">Search Field</div>
+                    <select class="mud-select">
+                        <option selected>Deal Name</option>
+                        <option>Contact Name</option>
+                        <option>Account Name</option>
+                        <option>Email (Related Contact)</option>
+                    </select>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Match Value Source</div>
+                    <select class="mud-select">
+                        <option>Static Value</option>
+                        <option selected>Extract from Email (regex)</option>
+                        <option>Sender Domain</option>
+                        <option>Sender Email</option>
+                    </select>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Extraction Regex (from Subject)</div>
+                    <input class="mud-input" value="(?:RE:|FW:)?\s*(.+?)(?:\s*-\s*|\s*$)" style="font-family:'Roboto Mono',monospace;font-size:12px;">
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Match Type</div>
+                    <select class="mud-select">
+                        <option selected>Contains</option>
+                        <option>Equals</option>
+                        <option>Starts With</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Deal Preview -->
+            <div class="section-divider">Deal Search Preview (Live Lookup)</div>
+            <div class="search-field" style="margin-bottom:8px;">
+                <span class="material-icons search-icon">search</span>
+                <input class="mud-input" style="padding-left:36px;" type="text" value="Onslow County" placeholder="Test search...">
+            </div>
+            <div style="border:1px solid var(--mud-divider);border-radius:4px;overflow:hidden;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                        <tr style="background:#f8f9fa;">
+                            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:500;color:var(--mud-text-sec);">DEAL NAME</th>
+                            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:500;color:var(--mud-text-sec);">STAGE</th>
+                            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:500;color:var(--mud-text-sec);">AMOUNT</th>
+                            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:500;color:var(--mud-text-sec);">ACCOUNT</th>
+                            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:500;color:var(--mud-text-sec);">ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background:rgba(89,74,226,0.04);cursor:pointer;">
+                            <td style="padding:8px 12px;font-weight:500;">Onslow County Paging Expansion</td>
+                            <td style="padding:8px 12px;"><span class="mud-chip info" style="font-size:10px;padding:2px 6px;">Proposal</span></td>
+                            <td style="padding:8px 12px;">$185,000</td>
+                            <td style="padding:8px 12px;">Onslow County</td>
+                            <td style="padding:8px 12px;"><span class="search-result-id">2061049000072...</span></td>
+                        </tr>
+                        <tr style="cursor:pointer;">
+                            <td style="padding:8px 12px;">Onslow County VoIP Phase 2</td>
+                            <td style="padding:8px 12px;"><span class="mud-chip success" style="font-size:10px;padding:2px 6px;">Closed Won</span></td>
+                            <td style="padding:8px 12px;">$92,400</td>
+                            <td style="padding:8px 12px;">Onslow County</td>
+                            <td style="padding:8px 12px;"><span class="search-result-id">2061049000064...</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="padding:6px 12px;font-size:11px;color:var(--mud-text-sec);background:#f8f9fa;">
+                    Results from <code>GET /crm/v6/Deals/search?criteria=(Deal_Name:contains:Onslow County)</code>
+                </div>
+            </div>
+
+            <!-- Note Attachment Config -->
+            <div class="section-divider">Step 2 — Attach Note with AI Summary</div>
+            <p style="font-size:12px;color:var(--mud-text-sec);margin-bottom:12px;">
+                When the function finds a matching deal, it calls
+                <code style="background:#f0f0f0;padding:2px 4px;border-radius:2px;font-size:11px;">POST /crm/v6/Deals/{id}/Notes</code>
+                with the email transcript and an AI-generated summary.
+            </p>
+
+            <div class="field-grid">
+                <div class="mud-field field-full">
+                    <div class="mud-field-label">Note Title Template</div>
+                    <input class="mud-input" value="Email: {email_subject} — {sender_name} ({date})" style="font-family:'Roboto Mono',monospace;font-size:12px;">
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">
+                        Variables: <code>{email_subject}</code> <code>{sender}</code> <code>{sender_name}</code> <code>{date}</code>
+                    </div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Include AI Summary</div>
+                    <div class="mud-switch" style="margin-top:4px;">
+                        <div class="mud-switch-track on"></div>
+                        <span style="font-size:13px;">Yes — Claude generates a 2-3 sentence summary</span>
+                    </div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Include Full Email Body</div>
+                    <div class="mud-switch" style="margin-top:4px;">
+                        <div class="mud-switch-track on"></div>
+                        <span style="font-size:13px;">Yes — appended below the summary</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Note Preview -->
+            <div style="margin-top:8px;border:1px solid var(--mud-divider);border-radius:4px;overflow:hidden;">
+                <div style="padding:10px 16px;background:#f8f9fa;border-bottom:1px solid var(--mud-divider);font-size:12px;font-weight:500;color:var(--mud-text-sec);">NOTE PREVIEW</div>
+                <div style="padding:16px;font-size:13px;line-height:1.6;">
+                    <div style="font-weight:500;font-size:14px;margin-bottom:8px;">Email: RE: Paging Expansion Timeline — Jim Carter (Mar 14, 2026)</div>
+                    <div style="background:#ede7f6;border-radius:4px;padding:10px 12px;margin-bottom:12px;border-left:3px solid var(--mud-primary);">
+                        <div style="font-size:11px;font-weight:600;color:var(--mud-primary);margin-bottom:4px;">AI SUMMARY</div>
+                        Jim Carter from Onslow County confirmed the paging expansion timeline for Q2 2026. He requested a revised quote including the additional 12 zones discussed in the site walk last week. Budget approval is expected by end of March.
+                    </div>
+                    <div style="font-size:12px;color:var(--mud-text-sec);border-top:1px solid var(--mud-divider);padding-top:10px;">
+                        <strong>Full Email:</strong><br>
+                        <span style="font-style:italic;color:#999;">Hi Albert, Just wanted to confirm we're still targeting Q2 for the paging expansion. Can you send over a revised quote that includes those extra 12 zones we discussed during the site walk? I expect budget sign-off by end of month. Thanks, Jim</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:12px;font-size:12px;color:var(--mud-text-sec);background:#fff3e0;padding:10px 12px;border-radius:4px;border-left:3px solid var(--mud-warning);">
+                <strong>Multiple matches:</strong> If the search returns multiple deals, the action logs a warning and skips the note. Only single-match results are processed automatically.
+            </div>
+
+            <div style="margin-top:8px;font-size:12px;color:var(--mud-text-sec);background:#e3f2fd;padding:10px 12px;border-radius:4px;border-left:3px solid var(--mud-info);">
+                <strong>V2 Planned:</strong> Deal field updates (Stage, Amount, Description, etc.) will be added in V2 once the note-attachment pattern is validated in production.
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ===================== SCREEN 5: ZOHO DESK ===================== -->
+<div class="tab-content" id="screen-zoho-desk">
+<div style="max-width:900px;margin:0 auto;padding:24px;">
+    <h2 style="font-size:20px;font-weight:500;margin-bottom:4px;">Zoho Desk — Create Ticket Action</h2>
+    <p style="font-size:13px;color:var(--mud-text-sec);margin-bottom:24px;">Map email data to a Zoho Desk ticket. Searches for existing contacts and accounts.</p>
+
+    <div class="action-card">
+        <div class="action-card-header">
+            <div class="action-card-header-left">
+                <span class="action-type-badge zoho-desk"><span class="material-icons" style="font-size:12px;">confirmation_number</span> Zoho Desk — Create Ticket</span>
+            </div>
+        </div>
+        <div class="action-card-body">
+
+            <!-- Department & Team -->
+            <div class="section-divider">Step 1 — Routing (Department + Team)</div>
+            <p style="font-size:12px;color:var(--mud-text-sec);margin-bottom:12px;">
+                Departments and teams loaded from
+                <code style="background:#f0f0f0;padding:2px 4px;border-radius:2px;font-size:11px;">GET /api/v1/departments</code> and
+                <code style="background:#f0f0f0;padding:2px 4px;border-radius:2px;font-size:11px;">GET /api/v1/teams</code>
+            </p>
+            <div class="field-grid">
+                <div class="mud-field">
+                    <div class="mud-field-label">Department</div>
+                    <select class="mud-select">
+                        <option selected>True IP Solutions (450966000000006907)</option>
+                        <option>Accounting (450966000000421001)</option>
+                    </select>
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">Loaded from Zoho Desk API. Cached 24hr.</div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Team</div>
+                    <select class="mud-select">
+                        <option selected>Support Team (450966000000355001)</option>
+                        <option>Engineering (450966000000355024)</option>
+                        <option>Sales (450966000000355047)</option>
+                    </select>
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">Filtered by selected department.</div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Priority</div>
+                    <select class="mud-select">
+                        <option>Low</option>
+                        <option selected>Medium</option>
+                        <option>High</option>
+                        <option>Urgent</option>
+                    </select>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Channel</div>
+                    <select class="mud-select">
+                        <option selected>Email</option>
+                        <option>Phone</option>
+                        <option>Web</option>
+                        <option>Chat</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Account Matching -->
+            <div class="section-divider">Step 2 — Match Account in Zoho Desk</div>
+            <p style="font-size:12px;color:var(--mud-text-sec);margin-bottom:12px;">
+                Search for the account to attach the ticket to. Uses
+                <code style="background:#f0f0f0;padding:2px 4px;border-radius:2px;font-size:11px;">GET /api/v1/accounts/search?searchStr={query}</code>
+            </p>
+
+            <div class="field-grid">
+                <div class="mud-field">
+                    <div class="mud-field-label">Account Match Strategy</div>
+                    <select class="mud-select">
+                        <option>Static (always same account)</option>
+                        <option selected>Match by Sender Domain</option>
+                        <option>Match by Sender Email</option>
+                        <option>Extract from Subject (regex)</option>
+                    </select>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Fallback Account (if no match)</div>
+                    <div class="search-field">
+                        <span class="material-icons search-icon">search</span>
+                        <input class="mud-input" style="padding-left:36px;" type="text" value="Smithfield" placeholder="Search Zoho Desk accounts...">
+                    </div>
+                    <div class="search-results" style="position:relative;margin-top:4px;">
+                        <div class="search-result-item" style="background:rgba(89,74,226,0.04);">
+                            <span class="material-icons" style="font-size:16px;color:var(--mud-primary);">business</span>
+                            <div style="flex:1;">
+                                <div style="font-weight:500;">Smithfield Foods</div>
+                                <div class="search-result-meta">smithfieldfoods.com — 14 open tickets</div>
+                            </div>
+                            <span class="search-result-id">450966000004737035</span>
+                        </div>
+                        <div class="search-result-item">
+                            <span class="material-icons" style="font-size:16px;color:var(--mud-text-sec);">business</span>
+                            <div style="flex:1;">
+                                <div>Smithfield Packing Co</div>
+                                <div class="search-result-meta">smithfieldpacking.com — 2 open tickets</div>
+                            </div>
+                            <span class="search-result-id">450966000006291018</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mud-card" style="background:#f8f9fa;border:1px solid var(--mud-divider);margin-top:12px;margin-bottom:16px;">
+                <div class="mud-card-content" style="padding:12px 16px;">
+                    <div style="font-size:12px;font-weight:500;color:var(--mud-text);margin-bottom:8px;">ACCOUNT MATCH FLOW</div>
+                    <div style="display:flex;gap:8px;align-items:center;font-size:12px;flex-wrap:wrap;">
+                        <span class="mud-chip info" style="font-size:11px;">Email arrives from user@smithfieldfoods.com</span>
+                        <span class="material-icons" style="font-size:14px;color:var(--mud-text-sec);">arrow_forward</span>
+                        <span class="mud-chip info" style="font-size:11px;">Extract domain: smithfieldfoods.com</span>
+                        <span class="material-icons" style="font-size:14px;color:var(--mud-text-sec);">arrow_forward</span>
+                        <span class="mud-chip info" style="font-size:11px;">Search Desk accounts by website</span>
+                        <span class="material-icons" style="font-size:14px;color:var(--mud-text-sec);">arrow_forward</span>
+                        <span class="mud-chip success" style="font-size:11px;">Found: Smithfield Foods (450966...)</span>
+                    </div>
+                    <div style="margin-top:6px;font-size:11px;color:var(--mud-text-sec);">If no match found, uses the fallback account configured above.</div>
+                </div>
+            </div>
+
+            <!-- Ticket Content -->
+            <div class="section-divider">Step 3 — Ticket Content</div>
+            <div class="field-grid">
+                <div class="mud-field field-full">
+                    <div class="mud-field-label">Ticket Subject Template</div>
+                    <input class="mud-input" value="{email_subject}" style="font-family:'Roboto Mono',monospace;font-size:12px;">
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">
+                        Variables: <code>{email_subject}</code> <code>{sender}</code> <code>{sender_name}</code> <code>{date}</code>
+                    </div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Include Email Body as Description</div>
+                    <div class="mud-switch" style="margin-top:4px;">
+                        <div class="mud-switch-track on"></div>
+                        <span style="font-size:13px;">Yes</span>
+                    </div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Include Attachments</div>
+                    <div class="mud-switch" style="margin-top:4px;">
+                        <div class="mud-switch-track on"></div>
+                        <span style="font-size:13px;">Yes — download from Graph, upload to Desk</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deduplication -->
+            <div class="section-divider">Step 4 — Deduplication</div>
+            <div class="field-grid">
+                <div class="mud-field">
+                    <div class="mud-field-label">Skip Replies/Forwards</div>
+                    <div class="mud-switch" style="margin-top:4px;">
+                        <div class="mud-switch-track on"></div>
+                        <span style="font-size:13px;">Don't create ticket if subject starts with RE: or FW:</span>
+                    </div>
+                </div>
+                <div class="mud-field">
+                    <div class="mud-field-label">Identifier Regex (for PO/ticket dedup)</div>
+                    <input class="mud-input" value="-PO(\d+)-" style="font-family:'Roboto Mono',monospace;font-size:12px;">
+                    <div style="font-size:11px;color:var(--mud-text-sec);margin-top:4px;">
+                        If present in subject, search Desk for existing ticket with same identifier before creating new one.
+                        <code>GET /api/v1/tickets/search?subject:-PO{extracted}-</code>
+                    </div>
+                </div>
+            </div>
+
+            <div style="font-size:12px;color:var(--mud-text-sec);background:#f3e5f5;padding:10px 12px;border-radius:4px;border-left:3px solid #6a1b9a;margin-top:12px;">
+                <strong>API Call:</strong> <code>POST /api/v1/tickets</code> with subject, description, contact (from sender email), accountId, departmentId, teamId, priority, channel. Attachments uploaded via <code>POST /api/v1/tickets/{id}/attachments</code>. Uses existing <code>ZohoDeskService</code>.
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+function showScreen(id) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.mockup-nav-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    event.target.classList.add('active');
+}
+
+function showTab(el, tabId) {
+    el.parentElement.querySelectorAll('.mud-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.getElementById('tab-' + tabId).style.display = 'block';
+}
+
+function setOp(btn, op) {
+    btn.parentElement.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function selectSuggestion(card) {
+    document.querySelectorAll('.suggestion-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+}
+</script>
+
+</body>
+</html>

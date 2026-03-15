@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Inbox Monitor — AI-Assisted Project Scoping</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface-hover: #22263a;
+            --border: #2a2e3f;
+            --text: #e1e4ed;
+            --text-dim: #8b8fa3;
+            --text-muted: #5c6072;
+            --accent: #7c6bf0;
+            --accent-light: #9d8ff5;
+            --accent-dim: rgba(124, 107, 240, 0.12);
+            --green: #34d399;
+            --green-dim: rgba(52, 211, 153, 0.12);
+            --amber: #fbbf24;
+            --amber-dim: rgba(251, 191, 36, 0.12);
+            --blue: #60a5fa;
+            --blue-dim: rgba(96, 165, 250, 0.12);
+            --red: #f87171;
+            --red-dim: rgba(248, 113, 113, 0.12);
+            --orange: #fb923c;
+            --orange-dim: rgba(251, 146, 60, 0.12);
+            --cyan: #22d3ee;
+            --cyan-dim: rgba(34, 211, 238, 0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        /* Hero */
+        .hero {
+            position: relative;
+            padding: 100px 0 80px;
+            text-align: center;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px; left: 50%; transform: translateX(-50%);
+            width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(124,107,240,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--accent-dim); border: 1px solid rgba(124,107,240,0.25);
+            padding: 6px 16px; border-radius: 20px;
+            font-size: 12px; font-weight: 500; color: var(--accent-light);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: 24px;
+        }
+        .hero h1 {
+            font-size: 48px; font-weight: 700; line-height: 1.15;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #e1e4ed 30%, var(--accent-light));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            max-width: 800px; margin: 0 auto 20px;
+        }
+        .hero-sub {
+            font-size: 18px; color: var(--text-dim); max-width: 640px; margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+        .hero-meta {
+            display: flex; justify-content: center; gap: 32px;
+            font-size: 13px; color: var(--text-muted);
+        }
+        .hero-meta span { display: flex; align-items: center; gap: 6px; }
+        .hero-meta .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        /* Layout */
+        .container { max-width: 920px; margin: 0 auto; padding: 0 32px; }
+        section { margin-bottom: 72px; }
+
+        /* Section headers */
+        .section-num {
+            font-size: 11px; font-weight: 600; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 0.12em;
+            margin-bottom: 8px;
+        }
+        h2 {
+            font-size: 28px; font-weight: 600; letter-spacing: -0.01em;
+            margin-bottom: 20px; color: var(--text);
+        }
+        h3 {
+            font-size: 18px; font-weight: 600; margin: 32px 0 12px;
+            color: var(--text);
+        }
+
+        /* Prose */
+        p { margin-bottom: 16px; color: var(--text-dim); }
+        p strong { color: var(--text); font-weight: 500; }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .card-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 12px;
+        }
+        .card-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .card-title { font-size: 15px; font-weight: 600; color: var(--text); }
+        .card-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+        /* Stat row */
+        .stat-row {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+            margin: 32px 0;
+        }
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+        .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+        /* Chips / Tags */
+        .chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border-radius: 6px;
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .chip.purple { background: var(--accent-dim); color: var(--accent-light); }
+        .chip.green { background: var(--green-dim); color: var(--green); }
+        .chip.amber { background: var(--amber-dim); color: var(--amber); }
+        .chip.blue { background: var(--blue-dim); color: var(--blue); }
+        .chip.red { background: var(--red-dim); color: var(--red); }
+        .chip.orange { background: var(--orange-dim); color: var(--orange); }
+        .chip.cyan { background: var(--cyan-dim); color: var(--cyan); }
+
+        /* Decision grid */
+        .decision-grid { display: flex; flex-direction: column; gap: 12px; }
+        .decision {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            display: grid;
+            grid-template-columns: 36px 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+        .decision-num {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: var(--accent-dim);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; color: var(--accent-light);
+            flex-shrink: 0;
+        }
+        .decision-q { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+        .decision-a { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+        /* Timeline */
+        .timeline { position: relative; padding-left: 32px; }
+        .timeline::before {
+            content: ''; position: absolute; left: 11px; top: 8px; bottom: 8px;
+            width: 2px; background: var(--border);
+        }
+        .timeline-item { position: relative; margin-bottom: 28px; }
+        .timeline-dot {
+            position: absolute; left: -32px; top: 6px;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--surface); border: 2px solid var(--accent);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .timeline-dot.done { background: var(--accent); border-color: var(--accent); }
+        .timeline-dot.done::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+        .timeline-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+        .timeline-desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+        /* Architecture block */
+        .arch-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 24px 0;
+        }
+        .arch-header {
+            padding: 14px 20px;
+            background: rgba(124, 107, 240, 0.06);
+            border-bottom: 1px solid var(--border);
+            font-size: 12px; font-weight: 600; color: var(--accent-light);
+            text-transform: uppercase; letter-spacing: 0.08em;
+        }
+        .arch-body { padding: 20px; }
+        pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px; line-height: 1.6;
+            color: var(--text-dim);
+            overflow-x: auto;
+            white-space: pre;
+        }
+        pre .comment { color: var(--text-muted); }
+        pre .highlight { color: var(--accent-light); }
+        pre .str { color: var(--green); }
+        pre .keyword { color: var(--orange); }
+
+        /* Phase table */
+        .phase-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+        }
+        .phase-table th {
+            text-align: left; padding: 10px 16px;
+            font-size: 11px; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            border-bottom: 2px solid var(--border);
+        }
+        .phase-table td {
+            padding: 12px 16px;
+            font-size: 13px; color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+        .phase-table tr:last-child td { border-bottom: none; }
+
+        /* Callout */
+        .callout {
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .callout.accent { background: var(--accent-dim); border-left: 3px solid var(--accent); color: var(--text-dim); }
+        .callout.green { background: var(--green-dim); border-left: 3px solid var(--green); color: var(--text-dim); }
+        .callout.amber { background: var(--amber-dim); border-left: 3px solid var(--amber); color: var(--text-dim); }
+
+        /* Divider */
+        .divider { height: 1px; background: var(--border); margin: 48px 0; }
+
+        /* Conversation excerpt */
+        .convo { margin: 20px 0; }
+        .convo-msg {
+            display: flex; gap: 12px;
+            margin-bottom: 16px;
+        }
+        .convo-avatar {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; flex-shrink: 0;
+            color: #fff;
+        }
+        .convo-avatar.human { background: var(--accent); }
+        .convo-avatar.ai { background: linear-gradient(135deg, #d97706, #f59e0b); }
+        .convo-bubble {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 13.5px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            max-width: 80%;
+        }
+        .convo-bubble strong { color: var(--text); }
+        .convo-bubble em { color: var(--text-muted); font-style: italic; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 48px 0 64px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .footer a { color: var(--accent-light); text-decoration: none; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 32px; }
+            .stat-row { grid-template-columns: repeat(2, 1fr); }
+            .hero-meta { flex-wrap: wrap; justify-content: center; }
+        }
+
+        /* Print */
+        @media print {
+            :root {
+                --bg: #fff; --surface: #f9f9fb; --border: #e0e0e0;
+                --text: #1a1a2e; --text-dim: #444; --text-muted: #888;
+            }
+            body { font-size: 12px; }
+            .hero { padding: 40px 0; }
+            .hero h1 { font-size: 28px; background: none; -webkit-text-fill-color: var(--text); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+    <div class="container">
+        <div class="hero-badge">⚡ Case Study — AI-Assisted Engineering</div>
+        <h1>Building an Email Automation Platform with Claude</h1>
+        <p class="hero-sub">
+            How a solo founder and an AI agent scoped a 900-line project plan — covering 31 architecture decisions,
+            data models, 8-phase delivery, and interactive UI mockups — in a single day of collaborative sessions.
+        </p>
+        <div class="hero-meta">
+            <span><div class="dot" style="background:var(--green)"></div> Albert Steed — True IP Solutions</span>
+            <span><div class="dot" style="background:var(--accent)"></div> Claude (Anthropic) — Opus</span>
+            <span><div class="dot" style="background:var(--text-muted)"></div> March 13–14, 2026</span>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Stats -->
+    <div class="stat-row">
+        <div class="stat">
+            <div class="stat-value" style="color:var(--accent-light)">31</div>
+            <div class="stat-label">Architecture Decisions</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color:var(--green)">889</div>
+            <div class="stat-label">Lines in Plan Doc</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color:var(--amber)">8</div>
+            <div class="stat-label">Delivery Phases</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color:var(--blue)">2</div>
+            <div class="stat-label">Interactive Mockups</div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Section 1: The Problem -->
+    <section>
+        <div class="section-num">01 — Context</div>
+        <h2>The Problem Being Solved</h2>
+        <p>
+            True IP Solutions provides VoIP phone systems, integrated security, and paging for K-12 schools and
+            county governments across North Carolina. The company's accounting inbox receives hundreds of emails
+            per week — payment confirmations from Bill.com and REPAY, vendor invoices, E-Rate correspondence, PO
+            issues from school districts, and helpdesk requests that arrive at the wrong address.
+        </p>
+        <p>
+            Before this project, email processing ran through standalone Claude scheduled tasks with rules hardcoded
+            in a markdown file (<strong>Email-Processing.md</strong>). Each time a rule needed to change, someone had to
+            edit the file manually, test it, and hope nothing broke. There was no dashboard, no audit trail, and no
+            way for other staff to see what the system was doing.
+        </p>
+        <p>
+            The goal: build a full-featured <strong>Inbox Monitor</strong> inside the existing TIPS Portal — with a
+            MudBlazor UI for rule management, AI-powered email classification, integrations into Zoho Books/CRM/Desk,
+            and a background Azure Function that processes inboxes on a configurable schedule.
+        </p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Section 2: How the Scoping Worked -->
+    <section>
+        <div class="section-num">02 — Process</div>
+        <h2>How the Scoping Interview Worked</h2>
+        <p>
+            The entire scoping process played out as a structured conversation between Albert and Claude across
+            multiple sessions on March 13–14, 2026. Rather than writing a spec in isolation, the approach was
+            <strong>iterative and decision-driven</strong>: Claude asked targeted questions about architecture, auth
+            models, data storage, and integration patterns. Albert answered each one, and the plan grew organically
+            from those answers.
+        </p>
+
+        <h3>The Interview Pattern</h3>
+        <p>
+            Each decision followed the same rhythm. Claude would present 2–4 concrete options (not vague
+            possibilities) with trade-offs. Albert picked one, sometimes with modifications. The decision was
+            immediately recorded in a numbered table, and downstream impacts were traced through the plan —
+            updating the data model, adjusting the phased delivery, and noting integration items.
+        </p>
+
+        <div class="convo">
+            <div class="convo-msg">
+                <div class="convo-avatar ai">C</div>
+                <div class="convo-bubble">
+                    <strong>Decision #23 — Testing without production sandboxes.</strong> Three options:
+                    (1) Separate sandbox environments for each external system,
+                    (2) Dry Run mode at the pipeline level — everything runs except write operations get replaced with structured logs,
+                    (3) Mock-only testing with no real API calls.
+                    <br><br><em>Given that Zoho doesn't offer free sandboxes and Graph test tenants are painful to maintain, I'd lean toward option 2.</em>
+                </div>
+            </div>
+            <div class="convo-msg">
+                <div class="convo-avatar human">A</div>
+                <div class="convo-bubble">
+                    Dry run. But I also want a "Test Run Now" button that fires a one-shot dry run regardless of the inbox's saved mode. And the dashboard should show dry-run results with an amber badge so you can tell them apart from live runs.
+                </div>
+            </div>
+            <div class="convo-msg">
+                <div class="convo-avatar ai">C</div>
+                <div class="convo-bubble">
+                    Done. Added RunMode enum (Live/DryRun) to InboxConfig, IsDryRun flag on both Cosmos document models, SimulatedAction field on ActionExecutionResult, and six new test cases covering the dry-run pipeline. The "Test Run Now" button goes in the toolbar next to "Add Inbox." Updating the mockup now.
+                </div>
+            </div>
+        </div>
+
+        <p>
+            This pattern repeated 31 times. By the end, every architectural question had a recorded answer,
+            and the plan document reflected all of them consistently — from database columns to UI components
+            to test strategy.
+        </p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Section 3: What Got Built -->
+    <section>
+        <div class="section-num">03 — Outputs</div>
+        <h2>What the Sessions Produced</h2>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background:var(--accent-dim);color:var(--accent-light)">📋</div>
+                <div class="card-title">889-Line Project Plan</div>
+            </div>
+            <div class="card-desc">
+                A single markdown document covering overview, 31-row decisions table, out-of-scope items,
+                solution architecture, data model (C# entities + Cosmos DB documents), 8-phase delivery plan
+                with per-file task lists, wave map for parallel execution, component progress tracker,
+                integration checklist, and testing strategy.
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background:var(--green-dim);color:var(--green)">🎨</div>
+                <div class="card-title">Interactive UI Mockups (HTML)</div>
+            </div>
+            <div class="card-desc">
+                Two fully interactive HTML files that simulate the MudBlazor design system:
+                a <strong>Dashboard mockup</strong> with stat cards, processing volume charts, AI category donut,
+                activity log with dry-run and payment warning examples, and a configured inboxes table;
+                and a <strong>Rule Editor mockup</strong> with 5 tabs covering rule conditions, Outlook actions,
+                Zoho Books payment config, Zoho CRM note attachment, and Zoho Desk ticket creation — plus an
+                AI Rule Suggestions dialog.
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background:var(--amber-dim);color:var(--amber)">🔧</div>
+                <div class="card-title">Updated Engineering Standards</div>
+            </div>
+            <div class="card-desc">
+                Lessons from a parallel migration project (SNOUT) were extracted and folded into the team's
+                coding best practices and project scoping docs — including SSDT-first database migrations,
+                UI mockup drift detection, settings pattern validation, and API contract testing gaps.
+                Changes propagated to both the team repo and the public template repo.
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Section 4: The 31 Decisions -->
+    <section>
+        <div class="section-num">04 — Decisions</div>
+        <h2>31 Architecture Decisions, Recorded</h2>
+        <p>
+            Every non-trivial question got a numbered decision. Here are the highlights grouped by domain.
+            The full table lives in the plan document.
+        </p>
+
+        <h3>Auth and Identity <span class="chip purple">Decisions 1–4</span></h3>
+        <div class="decision-grid">
+            <div class="decision">
+                <div class="decision-num">2</div>
+                <div>
+                    <div class="decision-q">Auth model?</div>
+                    <div class="decision-a">Two Entra ID app roles: <strong>ClaudeInboxUser</strong> (own mailbox only) and <strong>ClaudeInboxAdmin</strong> (all inboxes, rule management, system config). Admin implies user — no need to hold both.</div>
+                </div>
+            </div>
+            <div class="decision">
+                <div class="decision-num">4</div>
+                <div>
+                    <div class="decision-q">User-to-mailbox mapping?</div>
+                    <div class="decision-a">UPN equals mailbox. The logged-in user's UPN is their mailbox address. Admins can add shared mailboxes through the UI. No whitelist — Graph permissions enforce access at runtime.</div>
+                </div>
+            </div>
+        </div>
+
+        <h3>Data Storage <span class="chip blue">Decisions 7, 22, 27</span></h3>
+        <div class="decision-grid">
+            <div class="decision">
+                <div class="decision-num">7</div>
+                <div>
+                    <div class="decision-q">Where are rules stored?</div>
+                    <div class="decision-a">SQL Server in a new <strong>scClaude</strong> schema. Five tables: InboxConfig, InboxRule, InboxRuleConditionGroup, InboxRuleCondition, InboxRuleAction. EF Core entities with full CRUD through the UI.</div>
+                </div>
+            </div>
+            <div class="decision">
+                <div class="decision-num">22</div>
+                <div>
+                    <div class="decision-q">Activity log storage?</div>
+                    <div class="decision-a"><strong>Cosmos DB</strong> for all activity data. SQL keeps config only. Cosmos stores per-email results, run summaries, AI classifications. Partitioned by inbox+month, TTL-based retention (default 90 days). Solves PII concern and fits the append-heavy query pattern.</div>
+                </div>
+            </div>
+        </div>
+
+        <h3>Processing Pipeline <span class="chip green">Decisions 11–13, 23–26</span></h3>
+        <div class="decision-grid">
+            <div class="decision">
+                <div class="decision-num">11</div>
+                <div>
+                    <div class="decision-q">How do rules evaluate?</div>
+                    <div class="decision-a">Pipeline model: fetch unread via Graph → AI classification via Claude API → rule evaluation in priority order → action execution in sequence → write to Cosmos → generate summary. All matching rules fire; <strong>StopProcessing</strong> is an opt-in brake.</div>
+                </div>
+            </div>
+            <div class="decision">
+                <div class="decision-num">12</div>
+                <div>
+                    <div class="decision-q">Rule condition types?</div>
+                    <div class="decision-a">Full filter engine with condition groups. Groups connect by AND. Within each group, conditions connect via the group's operator (AND or OR). Supports nested logic. 16 filterable fields, 12 match operators including regex and between.</div>
+                </div>
+            </div>
+            <div class="decision">
+                <div class="decision-num">23</div>
+                <div>
+                    <div class="decision-q">Testing without production sandboxes?</div>
+                    <div class="decision-a"><strong>Dry Run mode at the pipeline level.</strong> Read-only operations execute normally. Write operations are replaced with structured logs. Results still write to Cosmos with <code>IsDryRun = true</code>. Dashboard shows them with an amber badge. "Test Run Now" button fires a one-shot dry run.</div>
+                </div>
+            </div>
+        </div>
+
+        <h3>AI and Integrations <span class="chip orange">Decisions 21, 29–31</span></h3>
+        <div class="decision-grid">
+            <div class="decision">
+                <div class="decision-num">21</div>
+                <div>
+                    <div class="decision-q">AI classification?</div>
+                    <div class="decision-a"><strong>Anthropic Claude API</strong> via HTTP. Classifies emails into categories (Needs Response, Follow-Up, Informational, Payment, etc.) and generates per-run natural language summaries. New <code>ClaudeAiService</code> in the service layer.</div>
+                </div>
+            </div>
+            <div class="decision">
+                <div class="decision-num">29</div>
+                <div>
+                    <div class="decision-q">Real-time UI updates?</div>
+                    <div class="decision-a"><strong>Azure SignalR Service</strong> (serverless mode). The Azure Function sends progress events as it processes. The Portal's Blazor pages receive live updates — processing progress, completion, and error alerts.</div>
+                </div>
+            </div>
+            <div class="decision">
+                <div class="decision-num">31</div>
+                <div>
+                    <div class="decision-q">AI rule suggestions?</div>
+                    <div class="decision-a">A "Suggest Rules" button sends the last 50 processed emails to the Claude API. Returns 2–3 rule templates based on detected patterns. Templates open in a pre-filled rule editor. No auto-creation — user reviews each one.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Section 5: Architecture -->
+    <section>
+        <div class="section-num">05 — Architecture</div>
+        <h2>System Architecture</h2>
+
+        <div class="arch-block">
+            <div class="arch-header">Solution Structure — Bounded Context Pattern</div>
+            <div class="arch-body">
+<pre><span class="highlight">TIP.App.Claude.Service/</span>              <span class="comment">← Business logic, Graph/Zoho API clients</span>
+  Inbox/InboxProcessingService.cs    <span class="comment">← Core pipeline engine</span>
+  Inbox/InboxConfigService.cs        <span class="comment">← CRUD for inbox configs</span>
+  Ai/ClaudeAiService.cs              <span class="comment">← Anthropic API: classification + summarization</span>
+  Ai/RuleSuggestionService.cs        <span class="comment">← AI rule templates from Cosmos history</span>
+  Monitoring/CosmosClientService.cs  <span class="comment">← Cosmos DB connection management</span>
+  Monitoring/SignalRNotificationService.cs  <span class="comment">← Real-time push to Portal</span>
+
+<span class="highlight">TIP.App.Claude.Service.Entity/</span>       <span class="comment">← DTOs, ViewModels, Enums</span>
+  Enums/ (6 files)                   <span class="comment">← ConditionField, MatchOperator, RunMode, etc.</span>
+
+<span class="highlight">TIP.App.Claude.UI/</span>                   <span class="comment">← Blazor components</span>
+  Pages/ (4 pages)                   <span class="comment">← Dashboard, InboxList, InboxDetail, ActivityLog</span>
+  Shared/ (5 components)             <span class="comment">← RuleEditor, ConditionGroupEditor, ActionEditor, etc.</span>
+
+<span class="highlight">TIP.App.Claude.Func/</span>                 <span class="comment">← Azure Function (background processor)</span>
+  InboxProcessorFunction.cs          <span class="comment">← Timer trigger + SignalR progress events</span>
+
+<span class="highlight">TIP.App.Test.Claude/</span>                 <span class="comment">← Unit + integration tests (70% min coverage)</span></pre>
+            </div>
+        </div>
+
+        <h3>Hosting Model</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;">
+            <div class="card" style="margin:0;">
+                <div class="card-title" style="margin-bottom:8px;">UI Layer</div>
+                <div class="card-desc">Blazor Server in the existing TIPS Portal. MudBlazor components. Entra ID auth with two app roles.</div>
+            </div>
+            <div class="card" style="margin:0;">
+                <div class="card-title" style="margin-bottom:8px;">Background Processing</div>
+                <div class="card-desc">Separate Azure Function app. Timer-triggered per inbox cron. Same App Registration, Managed Identity.</div>
+            </div>
+            <div class="card" style="margin:0;">
+                <div class="card-title" style="margin-bottom:8px;">Config Storage</div>
+                <div class="card-desc">SQL Server, <code>scClaude</code> schema. 5 tables for rules, conditions, actions. EF Core entities.</div>
+            </div>
+            <div class="card" style="margin:0;">
+                <div class="card-title" style="margin-bottom:8px;">Activity Storage</div>
+                <div class="card-desc">Cosmos DB, partitioned by inbox+month. 90-day TTL. Run summaries + per-email results.</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Section 6: Delivery -->
+    <section>
+        <div class="section-num">06 — Delivery</div>
+        <h2>8-Phase Delivery Plan</h2>
+        <p>
+            Phases are organized into waves that can run in parallel where dependencies allow. The plan
+            includes per-file task lists for every phase, gated checkpoints (SSDT publish, EF reverse-engineer,
+            mockup verification), and a progress tracker with 60+ individual components.
+        </p>
+
+        <table class="phase-table">
+            <thead>
+                <tr>
+                    <th>Wave</th>
+                    <th>Phase</th>
+                    <th>What</th>
+                    <th>Key Files</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="chip purple">1</span></td>
+                    <td>Phase 1</td>
+                    <td>Database schema + EF Core entities</td>
+                    <td>5 SSDT tables, 5 entity classes, DbContext updates</td>
+                </tr>
+                <tr>
+                    <td rowspan="2"><span class="chip blue">2</span></td>
+                    <td>Phase 2</td>
+                    <td>Service Entity layer (DTOs, enums, Cosmos models)</td>
+                    <td>6 enums, 6 view models, 5 Cosmos document classes</td>
+                </tr>
+                <tr>
+                    <td>Phase 3</td>
+                    <td>Shared Zoho extensions (Books + CRM)</td>
+                    <td>2 new service classes, 6 entity classes</td>
+                </tr>
+                <tr>
+                    <td><span class="chip green">3</span></td>
+                    <td>Phase 4</td>
+                    <td>Core service layer (pipeline, AI, monitoring)</td>
+                    <td>15 files: CRUD, pipeline, 4 action executors, AI, Cosmos, SignalR</td>
+                </tr>
+                <tr>
+                    <td rowspan="2"><span class="chip amber">4</span></td>
+                    <td>Phase 5</td>
+                    <td>Blazor UI (pages + shared components)</td>
+                    <td>4 pages, 5 shared components, NavMenu + Program.cs updates</td>
+                </tr>
+                <tr>
+                    <td>Phase 6</td>
+                    <td>Azure Function (background processor)</td>
+                    <td>Function project, timer trigger, SignalR output binding</td>
+                </tr>
+                <tr>
+                    <td rowspan="2"><span class="chip red">5</span></td>
+                    <td>Phase 7</td>
+                    <td>Testing (70% minimum coverage)</td>
+                    <td>14 test files covering all service + executor paths</td>
+                </tr>
+                <tr>
+                    <td>Phase 8</td>
+                    <td>Seed data migration</td>
+                    <td>SQL scripts translating Email-Processing.md into DB rows</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="callout accent">
+            <strong>Wave parallelism matters.</strong> Phases 2 and 3 run in parallel (both depend on Phase 1 but not on each other).
+            Phases 5 and 6 also run in parallel (both consume the service layer). This structure lets a developer
+            (or an AI agent) work on independent tracks simultaneously.
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Section 7: Sessions Timeline -->
+    <section>
+        <div class="section-num">07 — Timeline</div>
+        <h2>How the Sessions Unfolded</h2>
+        <p>
+            The scoping work happened across multiple sessions over two days. Each session built on the previous,
+            with context preserved through session logs and a shared plan document.
+        </p>
+
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-dot done"></div>
+                <div class="timeline-title">Session 1 — Source Control and Context Reorg <span class="chip cyan" style="margin-left:8px;">Mar 13 AM</span></div>
+                <div class="timeline-desc">
+                    Established the multi-org Source Control framework (TIPS, HAF, Personal repos). Reorganized
+                    the entire Claude Context folder from flat files into subfolders. Built the infrastructure
+                    that supports persistent context across sessions.
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot done"></div>
+                <div class="timeline-title">Session 2 — Coding Best Practices Review <span class="chip cyan" style="margin-left:8px;">Mar 13 Mid</span></div>
+                <div class="timeline-desc">
+                    Reviewed the SNOUT migration plan (1,231 lines) and extracted four lessons that were added to
+                    coding best practices and project scoping docs: SSDT-first migrations, UI mockup drift
+                    detection, settings pattern validation, and API contract test gaps. Propagated changes
+                    to the team and public repos.
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot done"></div>
+                <div class="timeline-title">Session 3 — Chat Session Logging System <span class="chip cyan" style="margin-left:8px;">Mar 13 PM</span></div>
+                <div class="timeline-desc">
+                    Built the persistent session logging system (memory/Tasks/*.md) that prevents context loss
+                    when the VM resets. Executive summaries at top, detailed narratives below, GitHub sync. This
+                    system is what allowed the scoping work to span multiple sessions without losing context.
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot done"></div>
+                <div class="timeline-title">Session 4 — Inbox Monitor Plan: Decisions 1–22 <span class="chip green" style="margin-left:8px;">Mar 14</span></div>
+                <div class="timeline-desc">
+                    The main scoping session. Worked through 22 architecture decisions covering auth, Graph API,
+                    rule storage, pipeline design, condition engine, action types, Zoho integrations, AI
+                    classification, and Cosmos DB. Built the initial data model, solution structure, and
+                    6-phase delivery plan.
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot done"></div>
+                <div class="timeline-title">Session 5 — Decisions 23–31 and Mockups <span class="chip green" style="margin-left:8px;">Mar 14</span></div>
+                <div class="timeline-desc">
+                    Final review session. Nine more decisions: Dry Run mode, multi-rule matching, concurrent run
+                    protection, email dedup, dashboard aggregation, Function identity, SignalR real-time updates,
+                    CRM V1 scope, and AI rule suggestions. Built both interactive HTML mockups. Updated the plan
+                    to 889 lines with full progress tracker and integration checklist.
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot done"></div>
+                <div class="timeline-title">Session 6 — Mockup Refinement <span class="chip green" style="margin-left:8px;">Mar 14</span></div>
+                <div class="timeline-desc">
+                    Updated both mockups to reflect all decisions from the final review. Added Dry Run mode UI
+                    (amber badges, "Test Run Now" button), partial payment warnings, CRM note-attachment pattern
+                    (replacing field updates), and AI rule suggestion dialog. Fixed CSS positioning bugs.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Section 8: What Made It Work -->
+    <section>
+        <div class="section-num">08 — Reflections</div>
+        <h2>What Made This Work</h2>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background:var(--green-dim);color:var(--green)">🧠</div>
+                <div class="card-title">Deep Context, Not Cold Starts</div>
+            </div>
+            <div class="card-desc">
+                Claude started every session by pulling the latest context files from GitHub, reading the last 2–3
+                session logs, and loading workflow-specific documents. It knew the codebase patterns (SNOUT's
+                bounded context structure, the SettingsService convention, the IDbContextFactory pattern)
+                before the first question was asked. That meant decisions could reference real code patterns,
+                not abstract best practices.
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background:var(--blue-dim);color:var(--blue)">🎯</div>
+                <div class="card-title">Decision-Driven, Not Document-Driven</div>
+            </div>
+            <div class="card-desc">
+                The plan grew from decisions, not the other way around. Each question had concrete options with
+                trade-offs. Each answer immediately updated the data model, file list, and phase plan. By the time
+                all 31 decisions were recorded, the plan was already complete — it just needed formatting, not
+                content creation.
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background:var(--amber-dim);color:var(--amber)">🔄</div>
+                <div class="card-title">Persistent Memory Across Sessions</div>
+            </div>
+            <div class="card-desc">
+                The session logging system (built in Session 3) allowed each subsequent session to pick up exactly
+                where the last one left off. Session logs, the plan document, and context files all synced through
+                GitHub. When the VM reset mid-work, nothing was lost. The AI agent operated more like a colleague
+                with a shared notebook than a stateless tool.
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background:var(--orange-dim);color:var(--orange)">⚡</div>
+                <div class="card-title">Mockups as Validation, Not Decoration</div>
+            </div>
+            <div class="card-desc">
+                The HTML mockups were built to validate decisions, not to look pretty. Every UI element maps to a
+                specific architectural choice: the RunMode column validates Decision #23, the payment warning card
+                validates the partial-payment out-of-scope item, the CRM tab's "Attach Note" workflow validates
+                Decision #30. When a decision changed (like CRM V1 scope shifting from field updates to note
+                attachment), the mockup was updated immediately to stay consistent.
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Section 9: What's Next -->
+    <section>
+        <div class="section-num">09 — Next Steps</div>
+        <h2>From Plan to Code</h2>
+        <p>
+            The plan is scoped and ready for implementation. The next step is Phase 1: creating the
+            <code>scClaude</code> database schema in SSDT and generating the EF Core entities. From there,
+            the wave map guides which phases can run in parallel.
+        </p>
+        <p>
+            Two remaining mockups (Inbox Config Detail and Activity Log) will be built as those phases approach.
+            The plan document, session logs, and mockups all live in Source Control and will be updated as
+            implementation progresses.
+        </p>
+
+        <div class="callout green">
+            <strong>The full plan document (889 lines) and both interactive mockups are available for review.</strong>
+            Implementation targets the <code>feat/issue-52</code> branch in the tip-app-services repository.
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p style="margin-bottom:8px;">
+            Built by <strong style="color:var(--text);">Albert Steed</strong> (True IP Solutions) and
+            <strong style="color:var(--text);">Claude</strong> (Anthropic Opus) — March 2026
+        </p>
+        <p>
+            Created with Cowork — AI-assisted project scoping and documentation
+        </p>
+    </div>
+
+</div>
+
+</body>
+</html>
