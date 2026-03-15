@@ -22,7 +22,8 @@ These instructions govern every session. Read them fully at the start of each co
 | `Claude Context/coding/source-control.md` | Any work involving git repositories — folder structure, PAT selection, clone/pull/push patterns |
 | `ClaudeCowork/memory/glossary.md` | Decode shorthand, names, acronyms, and internal language |
 | `ClaudeCowork/TASKS.md` | Track active tasks, waiting-on items, and commitments |
-| `memory/Tasks/*.md` | **Every session** (auto-created). Chat session logs with executive summaries and detailed narratives. See "Chat Session Logging" section below. |
+| `memory/SESSION-INDEX.md` | **Every session** (read at startup). Single-file manifest of all sessions with dates, tags, and one-line summaries. Use this to find relevant prior sessions without reading every log file. |
+| `memory/Tasks/*.md` | Individual session logs with executive summaries and detailed narratives. Only open specific files when the index points you there. See "Chat Session Logging" section below. |
 
 <!--
   ADD YOUR OWN CONTEXT FILES HERE as you build them.
@@ -67,24 +68,25 @@ For each major task type, load these files in order. This prevents missing a dep
 
 ---
 
-## Session Start — Housekeeping
+## Session Start — Hard Gate
+
+> **GATE RULE: The entire startup sequence below MUST complete before ANY task work, research, tool calls, or responses to the user's request.** No exceptions. Do not acknowledge the task, do not start thinking about it, do not read task-related files. Run every step below first. Only after the gate check confirms all steps passed does the session begin.
 
 <!--
-  CUSTOMIZE: Add your own session start steps here — credential loading, context sync,
-  repo pulls, etc. The steps below apply to anyone using Cowork mode or a similar
-  agent environment.
+  CUSTOMIZE: Add your own steps to this gate. Common additions:
+  - Unlock credentials from a vault (Azure Key Vault, AWS Secrets Manager, etc.)
+  - Pull latest context from a private GitHub repo
+  - Pull source control repos that are already cloned
+  - Set up VM workspace redirects for heavy build caches
 
-  If you version-control your context files (recommended), add a pull step here:
-  1. Unlock credentials (if using a vault)
-  2. Pull latest context from your private repo
-  3. If any files were updated, re-read them before proceeding
-  4. Pull any source control repos that are already cloned
+  The key principle: every step listed here is MANDATORY. The gate does not open
+  until all steps complete. This prevents sessions from starting work before
+  context is loaded, logs are created, and the environment is ready.
 -->
 
-**VM disk cleanup (Cowork users).** The Cowork VM has a 10 GB root volume that fills up from pip packages, temp files, and caches across sessions. Run this early in each session — before pulling repos or installing packages:
-
+### Step 1 — VM disk cleanup
+The Cowork VM has a 10 GB root volume that fills up across sessions. Run this before pulling repos or installing packages:
 ```bash
-# Check disk usage — only clean if above 70%
 USAGE=$(df / --output=pcent | tail -1 | tr -dc '0-9')
 if [ "$USAGE" -gt 70 ]; then
   echo "Disk at ${USAGE}% — running cleanup..."
@@ -98,7 +100,25 @@ else
 fi
 ```
 
-The 70% threshold is a good default. Adjust if your workflow installs heavier dependencies (OpenCV, ffmpeg, ML libraries, etc.).
+### Step 2 — Read session index and recent logs
+Read `memory/SESSION-INDEX.md` first — it has every session's date, tags, and one-line summary. Then open the most recent 2-3 individual log files from `memory/Tasks/` for detailed context. During the session, use the index to find older sessions by tag or topic without reading every file.
+
+### Step 3 — Create session log file
+Create a new file in `memory/Tasks/` using the naming pattern `YYYY-MM-DD-short-topic.md`. Use the template at `memory/Tasks/TEMPLATE.md`. If the session purpose isn't clear yet, use a placeholder like `2026-03-15-general.md` and rename once the direction is clear. A placeholder file is always better than no file. If multiple chats happen on the same day, append a sequence number: `YYYY-MM-DD-short-topic-02.md`.
+
+### Step 4 — Gate check
+Before proceeding, confirm all of the following are true:
+1. Session index read and recent logs reviewed (step 2)
+2. Session log file created in `memory/Tasks/` (step 3 — file must exist on disk)
+
+<!--
+  CUSTOMIZE: Add your own gate checks here. Examples:
+  - Keys unlocked (check: `echo $YOUR_PAT | wc -c` returns > 1)
+  - Context pulled from remote repo without errors
+  - Required repos are available locally
+-->
+
+**If any check fails, fix it before proceeding. The gate does not open until all checks are confirmed.**
 
 ---
 
@@ -224,9 +244,7 @@ Every chat session gets a persistent log file in `memory/Tasks/`. The logs serve
 
 ### When to Create
 
-At the start of every session, create a new file in `memory/Tasks/` using the naming pattern `YYYY-MM-DD-short-topic.md`. If multiple chats happen on the same day, append a sequence number: `YYYY-MM-DD-short-topic-02.md`. Use the template at `memory/Tasks/TEMPLATE.md` for structure.
-
-If the session purpose isn't clear yet, create the file with a placeholder topic like `2026-03-13-general.md` and rename it once the direction becomes clear.
+**This is part of the Session Start gate. The gate does not open until the log file exists on disk.** See "Session Start — Hard Gate" above. A placeholder file (`YYYY-MM-DD-general.md`) is always better than no file. Rename it once the session direction is clear.
 
 ### What Goes In
 
@@ -244,11 +262,21 @@ Update the session log after meaningful milestones, not after every single excha
 - An error or unexpected problem is encountered and resolved
 - A task is completed
 
+### Session Index Maintenance
+
+Every session must append a row to `memory/SESSION-INDEX.md` before the end-of-session push. The row format is:
+
+```
+| YYYY-MM-DD | `filename.md` | tag1, tag2 | One-sentence summary of what happened. |
+```
+
+**Tag rules:** Use tags from the vocabulary table at the top of SESSION-INDEX.md. If no existing tag fits, add a new one to the vocabulary table in the same edit. Keep tags specific enough to be useful for filtering but general enough to recur across sessions.
+
 ### End-of-Session Push
 
 <!--
-  CUSTOMIZE: If you sync context to a remote repo, push the session log before
-  the session ends. Example:
+  CUSTOMIZE: If you sync context to a remote repo, push the session log and
+  updated SESSION-INDEX.md before the session ends. Example:
   ```bash
   python3 context_sync.py push
   ```
@@ -256,7 +284,7 @@ Update the session log after meaningful milestones, not after every single excha
 
 ### Reading Previous Session Logs
 
-At session start, scan `memory/Tasks/` for recent session logs. Read the most recent 2-3 files to pick up context from prior sessions. Reference them naturally when relevant.
+At session start (gate step 2), read `memory/SESSION-INDEX.md` first for the full picture, then open the 2-3 most recent individual log files for detailed context. During the session, use the index to find older sessions by tag or keyword — grep the index file rather than reading every log.
 
 ---
 
@@ -303,5 +331,5 @@ Responses feel built for YOU — not for a generic user. Interactions compound: 
 
 ---
 
-*Last updated: [DATE]*
+*Last updated: 2026-03-15 — Rewrote Session Start as a hard gate. Added SESSION-INDEX.md manifest for searchable session history. Gate step 2 reads the index; session close appends a row.*
 *This file evolves. Propose changes when context files are updated or new patterns emerge.*
