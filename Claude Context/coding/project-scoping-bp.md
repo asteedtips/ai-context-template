@@ -375,6 +375,19 @@ Every project plan doc follows this section order. Sections marked as Track A on
 [Mandatory]
 ```
 
+### File naming
+
+`[Project]-Plan.md` — descriptive name matching the project.
+
+### File location
+
+Plan files live in the code repo's `docs/` folder, organized by issue. See `source-control.md` "Docs Folder Convention" for the full structure.
+
+- **When a GitHub issue exists:** `docs/feat-issue-{N}/{Project}-Plan.md`
+- **Before a GitHub issue exists:** `docs/draft-{project-name}/{Project}-Plan.md`. Rename the folder to `feat-issue-{N}/` when the issue is created.
+
+Supporting files (mockups, ADRs, deploy scripts, status trackers) go in the same issue subfolder alongside the plan.
+
 ---
 
 ## 12. Scoping Process — Step by Step

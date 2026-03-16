@@ -104,6 +104,55 @@ cd "$REPO_DIR" && git add -A && git commit -m "Description" && git push origin B
 
 ---
 
+## Docs Folder Convention — Code Repos
+
+Every code repo uses a `docs/` folder for project plans, mockups, and reference documentation. This section defines how that folder is organized.
+
+### Structure
+
+```
+docs/
+  feat-issue-52/           <- issue-specific: plans, mockups, implementation docs, deploy scripts
+  feat-issue-54/           <- issue-specific: plans, mockups, implementation docs
+  draft-new-feature/       <- pre-issue: plans started locally before a GitHub issue exists
+  README_Identity.md       <- reference docs that outlive any single issue
+  dev-local-settings.md
+```
+
+### Rules
+
+1. **One subfolder per GitHub issue.** Named `feat-issue-{N}/` to match the branch naming pattern (`feat/issue-{N}`). All plans, mockups, HTML wireframes, ADRs, implementation status docs, and deploy scripts for that issue go in its subfolder.
+
+2. **Pre-issue drafts.** When scoping starts locally before a GitHub issue is created, use `draft-{project-name}/` (e.g., `docs/draft-new-feature/`). Rename to `feat-issue-{N}/` as soon as the GitHub issue is created. Git tracks the rename cleanly.
+
+3. **Reference docs stay at root.** Documentation that applies to the whole repo and outlives any single issue (README_*, Architecture references, developer setup guides) stays at `docs/` root level. If a doc starts as issue-specific but becomes a long-lived reference, promote it to root when the issue closes.
+
+4. **Plan file naming inside the subfolder.** The primary plan file uses the pattern from `project-scoping-bp.md` Section 11: `{Project}-Plan.md`. Supporting files (mockups, ADRs, status trackers) use descriptive names.
+
+5. **Release notes go in docs repos, not code repos.** If your org uses a separate docs repository for release notes, write them there. Never commit release notes to the code repo.
+
+<!--
+  CUSTOMIZE: If your org has a separate docs repo for release notes, specify it here:
+
+  | Org | Docs Repo | Release Notes Path |
+  |-----|-----------|-------------------|
+  | [YOUR_ORG] | `[org]/docs` | `product-development/release-notes/` |
+
+  Release notes naming: `release-{seq}-{short-description}.md`
+-->
+
+6. **Deploy scripts follow their issue.** If deploy scripts (PowerShell, Bicep, ARM) are created as part of an issue, they go in that issue's subfolder. Cross-cutting deploy scripts get promoted to `docs/deploy/` or the repo's `/infra` folder.
+
+### Workflow — Issue Lifecycle in Docs
+
+1. **Scoping (pre-issue):** Create `docs/draft-{project-name}/` with the plan file and mockups.
+2. **Issue created:** Rename folder to `docs/feat-issue-{N}/`. Update any internal references.
+3. **Implementation:** All issue-specific documentation stays in the subfolder. Update the plan as work progresses per `project-scoping-bp.md` plan drift rule.
+4. **Release:** Write the release notes file in the docs repo (not the code repo). Reference the issue number and PR.
+5. **Post-merge cleanup:** After the feature branch merges, evaluate whether any docs should be promoted to root `docs/` as lasting references.
+
+---
+
 ## Commit Guidelines
 
 - Commit after completing a logical unit of work (updated plan section, new feature, bug fix, etc.)
@@ -122,4 +171,4 @@ cd "$REPO_DIR" && git add -A && git commit -m "Description" && git push origin B
 
 ---
 
-*Last updated: [DATE]*
+*Last updated: 2026-03-15 -- Added Docs Folder Convention section: issue subfolders, pre-issue drafts, release notes in docs repos, deploy scripts follow their issue.*
