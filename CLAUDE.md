@@ -23,6 +23,7 @@ These instructions govern every session. Read them fully at the start of each co
 | `ClaudeCowork/memory/glossary.md` | Decode shorthand, names, acronyms, and internal language |
 | `ClaudeCowork/TASKS.md` | Track active tasks, waiting-on items, and commitments |
 | `memory/SESSION-INDEX.md` | **Every session** (read at startup). Single-file manifest of all sessions with dates, tags, and one-line summaries. Use this to find relevant prior sessions without reading every log file. |
+| `memory/ERRORS.md` | **Step 1.5 health check** and whenever an error occurs. Tracks deterministic vs infrastructure errors with graduation rules. See "Knowledge Health Check" in startup gate. |
 | `memory/Tasks/*.md` | Individual session logs with executive summaries and detailed narratives. Only open specific files when the index points you there. See "Chat Session Logging" section below. |
 
 <!--
@@ -99,6 +100,16 @@ else
   echo "Disk at ${USAGE}% — no cleanup needed."
 fi
 ```
+
+### Step 1.5 — Knowledge health check
+Read `memory/ERRORS.md` and scan for infrastructure errors that have hit 3+ occurrences (graduation threshold). Then do a quick check across loaded context files for:
+- **Stale content**: References to retired tools, old paths, deprecated APIs, or outdated instructions.
+- **Bloated files**: Any context file over 80 KB should be flagged for splitting consideration.
+- **Overlapping content**: Two files covering the same topic with conflicting information.
+
+If issues are found, report them at the end of the startup summary (after "Gate check: passed"). Do not auto-fix during startup — just flag. Format: one line per issue.
+
+This step is lightweight. Spend no more than 30 seconds on it. If everything looks clean, skip silently.
 
 ### Step 2 — Read session index and recent logs
 Read `memory/SESSION-INDEX.md` first — it has every session's date, tags, and one-line summary. Then open the most recent 2-3 individual log files from `memory/Tasks/` for detailed context. During the session, use the index to find older sessions by tag or topic without reading every file.
@@ -325,11 +336,29 @@ At session start (gate step 2), read `memory/SESSION-INDEX.md` first for the ful
 
 ---
 
+## Active Knowledge Management
+
+This is as important as the current task. The context system only compounds if it's actively maintained.
+
+**Proactive edit duty:** When you notice something that should be in CLAUDE.md or a context file but isn't — a pattern, a preference, a correction, a new workflow — propose the edit. Don't wait to be asked. Present the specific change (old text → new text) and ask for approval before writing.
+
+**Error logging:** When an error occurs during a session, log it to `memory/ERRORS.md` using the confidence tier rules (deterministic = conclude immediately, infrastructure = wait for pattern). Graduate errors to context files when the threshold is met.
+
+**Knowledge hygiene:** The Step 1.5 health check flags issues at session start. When issues accumulate (3+ flags across sessions), propose a cleanup session rather than letting drift compound.
+
+**What to watch for:**
+- A workaround used in 2+ sessions that isn't documented anywhere → propose adding it to the relevant context file
+- A context file section that's consistently skipped or irrelevant → propose trimming it
+- A new API, tool, or workflow used regularly → propose a new context file or section
+- A decision made in a session that changes how future sessions should work → propose a CLAUDE.md update
+
+---
+
 ## What Success Looks Like
 
 Responses feel built for YOU — not for a generic user. Interactions compound: each session should be more useful than the last because context has deepened. You get clarity or actionable output without filler. End with a forward-looking thought or suggested next step, not a summary of what was just said.
 
 ---
 
-*Last updated: 2026-03-15 — Rewrote Session Start as a hard gate. Added SESSION-INDEX.md manifest for searchable session history. Gate step 2 reads the index; session close appends a row.*
+*Last updated: 2026-03-15 — Added memory/ERRORS.md, Step 1.5 knowledge health check, and Active Knowledge Management section.*
 *This file evolves. Propose changes when context files are updated or new patterns emerge.*
