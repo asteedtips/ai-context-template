@@ -41,6 +41,8 @@ Each GitHub organization uses a separate Personal Access Token stored in your se
   | `github.com/[your-personal]/*` | `GITHUB_PAT` | Your vault |
 -->
 
+**Fine-grained PAT auth format:** Fine-grained personal access tokens (prefix `github_pat_`) require `Authorization: Bearer <token>` in API calls. The older `Authorization: token <token>` format returns 401. Classic PATs (prefix `ghp_`) accept either format. Use `Bearer` for fine-grained PATs; either format works with classic PATs.
+
 ---
 
 ## Cloning Behavior — Mounted Volume Workaround
@@ -161,6 +163,36 @@ docs/
 
 ---
 
+## PR Workflow — Comments on Every Push
+
+When a push is related to an open PR, post a summary comment on the PR describing what changed in that push. If a linked issue exists, post the same summary there. This keeps reviewers informed without them needing to diff commits.
+
+**On every push to a PR branch:**
+1. Post a comment on the PR with a structured summary: which files changed, what the changes do, and current CI status.
+2. If the PR references a GitHub issue, post the same summary as a comment on the issue.
+3. Keep summaries factual — list commits, describe changes, note CI status. No filler.
+
+**After CI goes green (final push):**
+1. Post a follow-up comment confirming CI passed with the test count.
+2. Update the PR description/body if the feature summary or test plan changed.
+3. Review and update release notes (see next section).
+
+---
+
+## Phase Close — Release Notes Review
+
+At the end of every phase that touches production code, review the release notes in your docs repo for accuracy. Do not wait to be asked.
+
+**What to check:**
+- Do the release notes still accurately describe the feature's behavior after this phase's changes?
+- Were any dependencies added or removed?
+- Did the test coverage description change?
+- Did infrastructure requirements change?
+
+**When to update:** After CI is green on the final push for a phase, before closing out the session. If the phase only changed internal implementation (no behavior, API, or infrastructure changes), verify that's the case by reading the release notes file — don't assume.
+
+---
+
 ## Architecture Documentation Convention
 
 <!--
@@ -171,4 +203,4 @@ docs/
 
 ---
 
-*Last updated: 2026-03-15 -- Added Docs Folder Convention section: issue subfolders, pre-issue drafts, release notes in docs repos, deploy scripts follow their issue.*
+*Last updated: 2026-03-16 -- Added fine-grained PAT Bearer auth note, PR Workflow (comments on every push), Phase Close (release notes review) sections.*

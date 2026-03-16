@@ -78,6 +78,45 @@
 - XML doc comments on all public methods in service and entity projects
 - TODO/HACK/FIXME comments must have a corresponding tracked work item
 
+### 2.6 Code Style
+
+These rules apply across your codebase. Enforce via `.editorconfig` where possible.
+
+**Explicit typing over `var`:** Use explicit types when declaring variables. Implicit typing (`var`) reduces readability when a developer returns to unfamiliar code or reviews a PR without IDE tooling. Exception: LINQ expressions where the return type is obvious from the method chain and would be verbose to spell out.
+
+```csharp
+// Preferred
+[YOUR-ENTITY-TYPE] entity = await _service.GetEntityAsync(id, ct);
+List<[YOUR-DTO-TYPE]> items = result.Data;
+
+// Avoid
+var entity = await _service.GetEntityAsync(id, ct);
+var items = result.Data;
+```
+
+**Always use braces on control flow:** Even when the body is a single line, wrap `if`, `else`, `else if`, `for`, `foreach`, and `while` blocks in braces. No single-line conditionals.
+
+```csharp
+// Preferred
+if (id == 0)
+{
+    return BadRequest("Invalid input.");
+}
+
+// Avoid
+if (id == 0) return BadRequest("Invalid input.");
+```
+
+**`virtual` on all public service methods:** Every public method on a service class must be declared `virtual`. This is required for Moq to intercept methods when the service is mocked as a concrete class. Without `virtual`, Moq throws `NotSupportedException` on Setup/Verify calls, and with `MockBehavior.Loose` the real method executes against null dependencies causing `NullReferenceException`.
+
+```csharp
+// Required — every public service method
+public virtual async Task<[YOUR-RESULT-DTO]> DoWorkAsync(int id, CancellationToken ct)
+
+// Wrong — will break any test that mocks this service
+public async Task<[YOUR-RESULT-DTO]> DoWorkAsync(int id, CancellationToken ct)
+```
+
 ---
 
 ## 3. Configuration & Settings Standards
@@ -225,13 +264,78 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 
 **Transitive dependency awareness:** Before adding a project reference from one test project to another for shared fixtures, check the transitive package dependencies. If the referenced test project pulls in large packages, inline the shared helper instead.
 
-### API Contract Tests (External API Wrappers)
+### 6.6 Test Impact Analysis (Before Pushing Production Changes)
+
+When production code changes alter method signatures (return types, parameters), class constructors, or remove/rename public methods, every test file that references those classes will break. **Before pushing production changes, grep the test directory for every changed class name and fix all test files in the same commit.** One pass, not iterative CI discovery.
+
+```bash
+# After changing [YOUR-SERVICE] constructor from 5 to 4 params:
+grep -rn "[YOUR-SERVICE]" Tests/
+# Fix EVERY file that appears — not just the one you remember
+```
+
+**What counts as a signature change that requires this sweep:**
+- Constructor parameter added, removed, or reordered
+- Method return type changed
+- Method removed or renamed
+- Method parameter list changed
+- Access modifier changed (public → private/internal)
+
+**Phase planning implication:** When building implementation plans that modify existing code with existing tests, include a "Test Impact" line item for every wave that changes production signatures. Do not defer test fixes to a later wave — they ship with the production change that breaks them.
+
+### 6.7 Non-Virtual Third-Party Method Testing
+
+Some third-party or kernel library methods are non-virtual and cannot be intercepted by Moq. When a Loose mock executes the real non-virtual method, it typically throws `NullReferenceException` because the mock's internal state is null. `MockBehavior.Strict` throws `NotSupportedException` on any unsetup call.
+
+**Test patterns for code that calls non-virtual methods:**
+
+1. **Verify the pipeline stopped before the call:** Set up conditions so the code path returns before reaching the non-virtual method. Verify the upstream repository calls happened.
+
+2. **Assert the expected exception:** When testing the "happy path" that reaches the non-virtual call, assert that `NullReferenceException` is thrown. This proves the pipeline executed through all mockable steps and reached the send step. Verify upstream calls in addition to the exception.
+
+```csharp
+// Pattern: assert exception proves pipeline completed
+Func<Task> act = () => _service.[YOUR-METHOD]();
+await act.Should().ThrowAsync<NullReferenceException>();
+_mockRepository.Verify(r => r.[YOUR-UPSTREAM-CALL](), Times.Once);
+```
+
+3. **Do not attempt to Setup or Verify the non-virtual method.** Moq will throw `NotSupportedException` regardless of `MockBehavior`.
+
+### 6.8 Grep-Before-Push Rule
+
+Any time a commit changes a public API surface (constructor, method signature, return type, class rename), run a grep across the entire repo for the affected class/method names before pushing. This catches cascading breaks in test files, DI registrations, and other consumers in one pass rather than through iterative CI failures.
+
+This applies to both the VM workflow (grep locally) and the CI-first workflow (grep before commit). It is faster to spend 30 seconds grepping than to wait for a CI run to surface the same error.
+
+### 6.9 API Contract Tests (External API Wrappers)
 
 When a service wraps an external API, unit tests must verify the shape of the outgoing HTTP request, not just that a call was made. Assert on the URL path, query parameters, HTTP method, and request body structure in the mock handler.
 
 A mock that only confirms "an HTTP call happened" will pass even when the wrong parameter is sent. The bug only surfaces in integration tests or production. Contract tests that assert on request shape catch these mismatches immediately.
 
-### Reflection-Based Function Entry Point Testing
+**What to assert:**
+- Correct HTTP method (GET vs POST vs PUT)
+- Correct URL path and query parameters
+- Correct request body structure and field names
+- Correct parameter values (especially when the service maps between internal names and API-expected names)
+
+### 6.10 Dry Run Mode for External Endpoint Integration
+
+When a feature calls external APIs that modify data, the feature must support a **Dry Run mode** that lets the team validate the full pipeline without executing write operations against production or sandbox systems.
+
+**Why this matters:** Most external services have no sandbox environment or limited sandbox parity. Testing against live endpoints risks creating bad records or moving real data. A dry-run capability lets the team validate rule evaluation, data extraction, and pipeline sequencing without side effects.
+
+**Implementation pattern:**
+
+1. **Config-level toggle.** Add a `RunMode` field (enum: `Live`, `DryRun`) to the feature's primary configuration entity. This is a persistent setting, not a one-time flag.
+2. **Read/write boundary.** Every external integration already has a natural split between read operations (search, fetch, list) and write operations (create, update, move, delete). Read operations run identically in both modes. Write operations are gated by RunMode.
+3. **Structured simulation logging.** In DryRun mode, each skipped write operation produces a structured log entry describing what *would* have happened, including the target system, the operation, and the payload.
+4. **Results still persist.** DryRun results write to the same data store with an `IsDryRun = true` flag. This lets dashboards and activity logs display dry-run results with distinct visual treatment.
+5. **One-shot test button.** The UI provides a "Test Run Now" button that triggers a single pipeline execution in DryRun mode regardless of the saved RunMode.
+6. **Unit test coverage.** Tests must verify that DryRun mode (a) executes all read-only steps, (b) skips all write operations, (c) produces simulation descriptions, and (d) persists results with IsDryRun = true.
+
+### 6.11 Reflection-Based Function Entry Point Testing
 
 <!-- CUSTOMIZE: If your project uses Azure Functions, AWS Lambda, or similar serverless entry points, use this pattern. Remove if not applicable. -->
 
@@ -249,7 +353,7 @@ Serverless entry points (Azure Functions, Lambda handlers) are thin orchestratio
 
 **When to use:** For serverless entry points where the service layer is already tested. This is not a replacement for service-layer tests; it validates the deployment surface.
 
-### Untestable Production Code Protocol
+### 6.12 Untestable Production Code Protocol
 
 When writing tests for existing production code, you'll sometimes hit methods that can't be mocked: non-virtual methods on concrete classes, sealed classes, services that create concrete dependencies internally, or static method calls.
 
@@ -343,49 +447,60 @@ For Blazor component tests, use bUnit. A single shared UI test project is prefer
 - Background services must handle their own exceptions
 - Use caching for frequently-read, rarely-changed data with explicit expiration
 
-### 9.4 Local Build Verification Gate
+### 9.4 Build Verification: CI-First, Not Local-First
 
-<!-- CUSTOMIZE: Replace the SDK version and build commands with your stack (e.g., .NET 10, Node.js, Python, Go). -->
+**The primary verification gate is your CI/CD system, not local builds.** If your build system is resource-constrained or requires specific SDK versions, use CI as the primary gate. Rather than fighting those constraints, the standard workflow is:
 
-When the AI agent has access to build tools locally, it must build and run tests before committing to git. No exceptions.
+1. Write or modify code locally.
+2. Commit and push to a `feat/*` branch.
+3. CI/CD pipeline builds and tests automatically.
+4. Check results from the CI system.
+5. If tests fail, fix locally, push again.
 
-**Pre-commit sequence (run in order):**
+**When local builds still apply:** If your environment has the correct toolchain installed and the project is small enough to build locally (e.g., a Node.js project, a Python script, a small web app), a local build before commit is still valuable. For large compiled projects with many dependencies, CI is the gate.
 
-<!-- CUSTOMIZE: Replace these commands with your project's build and test commands. -->
-1. Run the build command for your solution or affected project(s). Fix any compiler errors or warnings before proceeding.
-2. Run the test suite. All tests must pass. If a test fails, diagnose and fix it before committing.
-3. If the build or tests require secrets/config that aren't available in the local environment, note that in the commit message and flag it to the developer. Don't skip the gate silently.
+**Pre-push checklist:**
+- Code compiles conceptually (no obvious syntax issues, imports are correct, interfaces match)
+- New test files follow the naming and structure conventions in Section 6
+- **Grep-before-push completed** (Section 6.8) — if any public signatures changed, all test files referencing those classes are fixed in this commit
+- Commit message describes the change clearly
+- If the push includes workflow file changes (`.github/workflows/`, CI YAML, etc.), confirm credentials and permissions are correct
 
-**When this gate applies:**
-- Any source code change (new files, edits, dependency/package changes)
-- Database migration additions
-- Dependency injection or service registration changes
-
-**When this gate does not apply:**
-- Documentation-only changes
-- Configuration changes that don't affect compilation
-- Branch housekeeping (merges, cherry-picks where the source branch already passed)
-
-**If the build fails and the fix is non-trivial:** Stop and discuss with the developer before attempting a fix that touches code outside the scope of the original task. The goal is to catch regressions introduced by the current change, not to fix pre-existing build issues in a drive-by commit.
+**CI-first means CI-only.** Do not fall back to local builds to diagnose failures when CI is available. Push to CI, read the results from the CI system, fix, push again. The CI log is the source of truth.
 
 #### 9.4.1 Compile-Run-Fix Loop (Multi-Project Phases)
 
-When a phase involves multiple test projects, the pre-commit sequence expands into an iterative gate loop. For orchestration across a phased plan, see `coding/project-scoping-bp.md` Section 8c.
+When a phase involves multiple test projects or multiple classes within a test project, the simple pre-push sequence above expands into an iterative gate loop. This is the per-project mechanics; for orchestration across a phased delivery plan, see `coding/project-scoping-bp.md` Section 8c.
 
 **Per-project gate loop:**
 
 1. **Write all test classes** for the project before compiling.
 2. **Compile gate:** Build the test project. Fix every compiler error and warning.
 3. **Run gate:** Run the full test project. Every test must pass.
-4. **Fix loop:** If a test fails, diagnose, fix, and re-run.
+4. **Fix loop:** If a test fails, read the failure output, diagnose, fix, and re-run.
 5. **Commit** once the full project compiles and all tests pass.
 
 **Gate failure protocol:**
 
-If fixing a test failure requires changing production code:
-- **Bug the test exposed:** Fix production code, commit separately, note in plan.
-- **Interface changed since plan was written:** Update test, note deviation.
-- **Code is untestable as-is:** See the Untestable Production Code Protocol above.
+If fixing a test failure requires changing production code (not just test code):
+- **Bug the test exposed:** Fix the production code, commit separately with a clear message, note the bug in the plan.
+- **Interface changed since the plan was written:** Update the test to match the current interface, note the deviation in the plan.
+- **Code is untestable as-is:** See Section 6.12 for the untestable production code protocol.
+
+#### 9.4.2 Phase-by-Phase CI Verification
+
+When modifying existing code that already has tests (as opposed to writing net-new code), push production changes and their corresponding test updates together, then wait for CI to pass before moving to the next phase. Do not batch all phases into a single push.
+
+**Why:** Batching works when everything is net-new (no existing tests to break). But when existing tests depend on the production code being changed, failures compound across phases and become harder to isolate.
+
+**The rule:**
+1. Complete production changes for one phase/wave.
+2. Run the grep-before-push sweep (Section 6.8) to find and fix all impacted test files.
+3. Commit production changes + test fixes together.
+4. Push. Wait for CI to pass.
+5. Move to the next phase.
+
+**Exception:** If the phases are independent (different files, different test classes, no shared signatures), batching is acceptable. Use judgment — if a Phase 2 change could break a Phase 1 test, they must be sequential.
 
 ---
 
@@ -421,4 +536,4 @@ If fixing a test failure requires changing production code:
 ---
 
 *Read this file before writing, reviewing, or modifying any code. For security guidance, see `security/security-practices.md`. For documentation formatting, see `writing/best-practices-creation.md`.*
-*Last updated: 2026-03-15 — Added per-context test structure, InMemory key conflicts, transitive deps, reflection-based entry point testing, untestable code protocol, bUnit testing, compile-run-fix gate loop*
+*Last updated: 2026-03-16 — Added Section 2.6 `virtual` rule for service methods, Section 6.6 test impact analysis (grep-before-push), Section 6.7 non-virtual third-party testing, Section 6.8 grep-before-push rule, Section 6.9-6.11 (API contract tests, dry run mode, reflection testing), Section 9.4 CI-first enforcement, Section 9.4.2 phase-by-phase CI verification. Renumbered Sections 6.9-6.12.*
