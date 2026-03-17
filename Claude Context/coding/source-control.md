@@ -57,7 +57,7 @@ rsync -r /tmp/sc-REPO/ "$TARGET_DIR/REPO/" 2>&1
 rm -rf /tmp/sc-REPO
 ```
 
-After the initial clone, `git pull`, `git commit`, and `git push` all work directly on the mounted path.
+After the initial clone, `git commit` and `git push` work directly on the mounted path. `git pull` can fail with `ORIG_HEAD.lock` errors on mounted volumes. If pull fails, use the same `/tmp/` workaround: copy to temp, pull there, rsync back.
 
 ---
 
@@ -155,6 +155,18 @@ docs/
 
 ---
 
+## Pre-Push Checklist (All Repos)
+
+Before pushing any commit, verify these items:
+
+1. **Signature change grep.** If any method signature changed (renamed, parameters added/removed, return type changed), grep all test files and consuming code for references to the old signature. This prevents multi-file breakage that CI catches but takes a full round-trip to diagnose. See `coding-best-practices.md` Section 6.8.
+
+2. **CI-first verification.** If your environment uses CI as the primary build gate (see `coding-best-practices.md` Section 9.4), do not build locally for verification. Push to the feature branch and let CI verify.
+
+3. **PAT scope for workflow files.** If the commit includes changes to `.github/workflows/` files, confirm the PAT has the `workflow` scope. Standard `repo` scope is not sufficient.
+
+---
+
 ## Commit Guidelines
 
 - Commit after completing a logical unit of work (updated plan section, new feature, bug fix, etc.)
@@ -203,4 +215,4 @@ At the end of every phase that touches production code, review the release notes
 
 ---
 
-*Last updated: 2026-03-16 -- Added fine-grained PAT Bearer auth note, PR Workflow (comments on every push), Phase Close (release notes review) sections.*
+*Last updated: 2026-03-16 -- Added Pre-Push Checklist, corrected git pull guidance for mounted volumes, added fine-grained PAT Bearer auth note, PR Workflow, Phase Close sections.*

@@ -264,6 +264,32 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 
 **Transitive dependency awareness:** Before adding a project reference from one test project to another for shared fixtures, check the transitive package dependencies. If the referenced test project pulls in large packages, inline the shared helper instead.
 
+**Static field contamination between test classes:** Static fields (dictionaries, lists, counters) persist across test class instantiations within a single test run. If one test class populates a static collection and another test class asserts on its count, the tests pass in isolation but fail when run together. Fix: clear static state in the test class constructor so every class starts clean.
+
+```csharp
+// Pattern: clear static state in constructor
+public class YourServiceTests
+{
+    public YourServiceTests()
+    {
+        // Reset any static collections that tests depend on
+        StaticClass.SharedCollection.Clear();
+    }
+}
+```
+
+**Background task queue mocking:** When testing code that calls `IBackgroundTaskQueue.QueueBackgroundWorkItemAsync()`, the queued lambda is never executed in tests because Moq returns a completed `ValueTask` without running the delegate. Test that the queue was called (the scheduling decision), not the side effects of the lambda.
+
+```csharp
+// Good: verify queuing happened
+_mockTaskQueue.Verify(
+    q => q.QueueBackgroundWorkItemAsync(It.IsAny<Func<CancellationToken, ValueTask>>()),
+    Times.Once);
+
+// Bad: asserting side effects that only happen when the lambda runs
+// The lambda never executes in unit tests — Moq returns completed ValueTask
+```
+
 ### 6.6 Test Impact Analysis (Before Pushing Production Changes)
 
 When production code changes alter method signatures (return types, parameters), class constructors, or remove/rename public methods, every test file that references those classes will break. **Before pushing production changes, grep the test directory for every changed class name and fix all test files in the same commit.** One pass, not iterative CI discovery.
