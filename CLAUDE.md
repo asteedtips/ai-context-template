@@ -344,6 +344,39 @@ This is as important as the current task. The context system only compounds if i
 
 **Error logging:** When an error occurs during a session, log it to `memory/ERRORS.md` using the confidence tier rules (deterministic = conclude immediately, infrastructure = wait for pattern). Graduate errors to context files when the threshold is met.
 
+### Error Surfacing Protocol
+
+When any context file's instructions produce a failure, unexpected result, or require a workaround:
+
+1. **Log it to that file's Corrections Log** (the standardized table at the bottom of each context file) with the date, what failed, root cause, and the fix applied or proposed.
+2. **Cross-reference to ERRORS.md** if it meets the logging threshold.
+3. **Flag it to the user** in the current response, but continue working on the task. Use a brief inline callout:
+   > **Context correction flagged:** [file] -- [one-line summary]. Will review at task end.
+4. **End-of-task review:** Before closing out any task, surface all flagged corrections in a single block. If none were flagged, skip silently.
+
+**Triggers:** API call fails following documented pattern, file path or config value is wrong, instructions produce unexpected behavior, workaround needed that isn't documented, known issue resolved but file still warns, something feels uncertain or ambiguous (when in doubt, flag it).
+
+**Not triggers:** One-off typos, transient infrastructure failures (unless recurring), build/test failures unrelated to context file instructions.
+
+### Per-File Corrections Log
+
+<!-- CUSTOMIZE: Adapt this to your context file structure -->
+Every context file must have a Corrections Log section at the bottom:
+
+```markdown
+---
+
+## Corrections Log
+
+*Tracks issues found when following this file's instructions.*
+
+| Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
+|------|-------------|------------|-------------|---------------|
+
+**Notes:**
+<!-- Per-entry context. Format: "YYYY-MM-DD: [explanation]" -->
+```
+
 **Knowledge hygiene:** The Step 1.5 health check flags issues at session start. When issues accumulate (3+ flags across sessions), propose a cleanup session rather than letting drift compound.
 
 **What to watch for:**
@@ -360,5 +393,18 @@ Responses feel built for YOU — not for a generic user. Interactions compound: 
 
 ---
 
-*Last updated: 2026-03-15 — Added memory/ERRORS.md, Step 1.5 knowledge health check, and Active Knowledge Management section.*
+*Last updated: 2026-03-17 — Added Error Surfacing Protocol and Per-File Corrections Log standard to Active Knowledge Management.*
 *This file evolves. Propose changes when context files are updated or new patterns emerge.*
+
+
+---
+
+## Corrections Log
+
+*Tracks issues found when following this file's instructions. Entries are added when a discrepancy is discovered and a fix is applied or proposed.*
+
+| Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
+|------|-------------|------------|-------------|---------------|
+
+**Notes:**
+<!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->

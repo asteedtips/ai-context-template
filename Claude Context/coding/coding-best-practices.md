@@ -585,3 +585,16 @@ When modifying existing code that already has tests (as opposed to writing net-n
 
 *Read this file before writing, reviewing, or modifying any code. For security guidance, see `security/security-practices.md`. For documentation formatting, see `writing/best-practices-creation.md`.*
 *Last updated: 2026-03-16 — Added Section 2.6 `virtual` rule for service methods, Section 6.6 test impact analysis (grep-before-push), Section 6.7 non-virtual third-party testing, Section 6.8 grep-before-push rule, Section 6.9-6.11 (API contract tests, dry run mode, reflection testing), Section 9.4 CI-first enforcement, Section 9.4.2 phase-by-phase CI verification. Renumbered Sections 6.9-6.12.*
+
+
+---
+
+## Corrections Log
+
+*Tracks issues found when following this file's instructions. Entries are added when a discrepancy is discovered and a fix is applied or proposed.*
+
+| Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
+|------|-------------|------------|-------------|---------------|
+
+**Notes:**
+<!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->

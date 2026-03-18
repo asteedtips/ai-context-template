@@ -216,3 +216,16 @@ At the end of every phase that touches production code, review the release notes
 ---
 
 *Last updated: 2026-03-16 -- Added Pre-Push Checklist, corrected git pull guidance for mounted volumes, added fine-grained PAT Bearer auth note, PR Workflow, Phase Close sections.*
+
+
+---
+
+## Corrections Log
+
+*Tracks issues found when following this file's instructions. Entries are added when a discrepancy is discovered and a fix is applied or proposed.*
+
+| Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
+|------|-------------|------------|-------------|---------------|
+
+**Notes:**
+<!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->

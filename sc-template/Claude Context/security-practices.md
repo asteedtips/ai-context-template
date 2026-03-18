@@ -1,6 +1,6 @@
 # API Security Practices
 
-> **When documenting any security workflow or producing deliverables from this context, read `Claude Context/writing/best-practices-creation.md`** — it governs output formats, diagram standards, naming conventions, and writing rules.
+> **When documenting any security workflow or producing deliverables from this context, read `Claude Context/best-practices-creation.md`** — it governs output formats, diagram standards, naming conventions, and writing rules.
 
 All API credentials should live in a centralized secret store. No secrets, tokens, keys, or passwords should be stored in plain text in any file the AI agent can read.
 

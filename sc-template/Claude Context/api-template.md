@@ -8,7 +8,7 @@
   Basic auth, or other mechanisms as needed.
 -->
 
-> **Before preparing any documentation using this data, read `Claude Context/writing/best-practices-creation.md`** — it governs output formats, diagram standards, naming conventions, and writing rules for all deliverables.
+> **Before preparing any documentation using this data, read `Claude Context/best-practices-creation.md`** — it governs output formats, diagram standards, naming conventions, and writing rules for all deliverables.
 
 Use this file as persistent context whenever you need to access [Service Name] data.
 

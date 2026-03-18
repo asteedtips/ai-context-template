@@ -459,3 +459,16 @@ Before marking a scope doc complete, verify:
 
 *Read this file before starting any code project. As new projects are scoped and built, update the standard question bank with questions that keep recurring.*
 *Last updated: 2026-03-15 — Added Track C (technical debt), test count estimation, Phased Execution Protocol (Section 8c), updated template and checklist*
+
+
+---
+
+## Corrections Log
+
+*Tracks issues found when following this file's instructions. Entries are added when a discrepancy is discovered and a fix is applied or proposed.*
+
+| Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
+|------|-------------|------------|-------------|---------------|
+
+**Notes:**
+<!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->

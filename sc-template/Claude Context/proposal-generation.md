@@ -10,7 +10,7 @@
   (see sales-framework.md) must be satisfied before any proposal is drafted.
 -->
 
-> **Before drafting any proposal, read `Claude Context/writing/best-practices-creation.md`** — it governs output formats (`.docx` default), Mermaid diagram standards, file naming conventions, writing rules, and the document quality checklist.
+> **Before drafting any proposal, read `Claude Context/best-practices-creation.md`** — it governs output formats (`.docx` default), Mermaid diagram standards, file naming conventions, writing rules, and the document quality checklist.
 
 ---
 
@@ -70,7 +70,7 @@ Ask these questions before doing anything else. They scope the proposal and ensu
 
 ## Step 3 — Qualification Gate Check
 
-Before writing a single word, verify that your qualification framework (see `sales/sales-framework.md`) is fully satisfied. If any pillars are missing, flag them and ask. Do not generate the proposal with unconfirmed pillars.
+Before writing a single word, verify that your qualification framework (see `sales-framework.md`) is fully satisfied. If any pillars are missing, flag them and ask. Do not generate the proposal with unconfirmed pillars.
 
 Gate fails → do not generate → flag what's missing → recommend the next discovery action.
 
