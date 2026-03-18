@@ -583,8 +583,85 @@ When modifying existing code that already has tests (as opposed to writing net-n
 
 ---
 
+## 12. Verification Agent Protocol
+
+When Claude is writing or modifying code, it can spin up independent sub-agents to review the work before marking it done. This catches pattern violations, UI conformance issues, and architectural drift that would otherwise surface in human code review. The protocol is complexity-gated — small changes don't need it, large changes require it.
+
+### 12.1 Complexity Tiers
+
+| Tier | Scope | Agent Strategy |
+|------|-------|----------------|
+| **Tier 1 — Small** | Single file, <50 lines changed, no UI | No verification agent. Review is built into the primary coding pass. |
+| **Tier 2 — Medium** | Multiple files, new service methods, or any UI work | One verification agent after coding is complete. |
+| **Tier 3 — Large** | New feature, multi-phase, touches external APIs or database schema | Two verification agents in parallel after each phase milestone. |
+
+**How to determine the tier:** The scope is known from the phase plan before any code is written. If there's no phase plan, use the file count and change size to classify. When in doubt, round up.
+
+### 12.2 What Each Agent Checks
+
+**Code Review Agent (Tier 2 and Tier 3):**
+
+<!--
+  CUSTOMIZE: List the specific rules from your coding standards that the
+  code review agent should check. Reference section numbers from this file.
+  Example checklist items:
+  - Layer reference direction (no upward refs)
+  - DI registration pattern
+  - Result wrapper pattern on service methods
+  - No .Result or .Wait() on Tasks
+  - Braces on all control flow
+  - XML docs on public methods
+  - No PII in log statements
+  - AsNoTracking() on read-only queries
+  - CancellationToken on async methods
+-->
+
+The agent receives the diff plus this best practices file and checks against your documented rules. It produces a pass/fail list. Any failure blocks the task from being marked done.
+
+**UI Conformance Agent (Tier 2 with UI, Tier 3 with UI):**
+
+Only runs when the change involves UI components and an approved mockup exists. Executes the mockup conformance gate:
+
+- Opens the mockup file
+- Walks the component spec checklist line by line against the implemented markup
+- Produces pass/fail output for each checklist item
+
+<!--
+  CUSTOMIZE: Reference your UI standards section and any framework-specific
+  checklists (e.g., new routable page checklist, component checklist).
+-->
+
+Any failure blocks the task from being marked done.
+
+**External API Agent (Tier 3 only, when applicable):**
+
+Only runs when the change touches external APIs. Checks:
+
+- Dry Run mode implementation if no sandbox exists
+- Retry policies on HTTP clients
+- No hardcoded credentials
+- Error handling on API responses
+
+### 12.3 When Agents Run
+
+Agents run **after coding is complete but before the task or phase is marked done.** They do not replace CI — CI validates compilation and test execution. Verification agents validate pattern compliance and conformance to standards that CI can't check.
+
+**Sequence:**
+1. Code the change
+2. Run verification agent(s) based on tier
+3. Fix any failures surfaced by agents
+4. Push to feature branch (triggers CI)
+5. CI validates compilation and tests
+6. Mark phase/task done only after both agent review and CI pass
+
+### 12.4 Agent Isolation
+
+Verification agents run with worktree isolation when possible, giving them a clean copy of the repository. This prevents the reviewing agent from being influenced by uncommitted scratch work or partial changes in the working tree.
+
+---
+
 *Read this file before writing, reviewing, or modifying any code. For security guidance, see `security/security-practices.md`. For documentation formatting, see `writing/best-practices-creation.md`.*
-*Last updated: 2026-03-16 — Added Section 2.6 `virtual` rule for service methods, Section 6.6 test impact analysis (grep-before-push), Section 6.7 non-virtual third-party testing, Section 6.8 grep-before-push rule, Section 6.9-6.11 (API contract tests, dry run mode, reflection testing), Section 9.4 CI-first enforcement, Section 9.4.2 phase-by-phase CI verification. Renumbered Sections 6.9-6.12.*
+*Last updated: 2026-03-17 — Added Section 12 (Verification Agent Protocol): complexity-tiered sub-agent review for code, UI conformance, and external API compliance.*
 
 
 ---
