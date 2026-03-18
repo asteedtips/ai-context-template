@@ -170,9 +170,29 @@ Single-file HTML mockups. No frameworks, no build step. Each mockup should show:
 3. **Navigation flow.** How the user gets to the feature.
 4. **Notification presentation.** If applicable, show how notifications appear in context.
 
-### Post-Implementation Verification (Mandatory)
+### Post-Implementation Verification — Hard Gate (Mandatory)
 
-After each UI component is built, verify it against the approved mockup before marking it done. See `coding-best-practices.md` for the full per-component verification process.
+Every UI component goes through a three-step gate: **Extract → Build → Verify.** See `coding-best-practices.md` for the full process.
+
+1. **Step A — Extract:** Before writing code, open the mockup and produce a Component Spec Checklist: one line per visual element, written in the implementation framework's language. Write this into the phase plan.
+2. **Step B — Build:** Implement using the checklist as the spec.
+3. **Step C — Verify:** After code compiles, walk the checklist marking each ✅ or ❌. Fix any ❌, re-verify the full list. Write verification output into the plan.
+
+The component cannot be marked DONE until the verification artifact shows all items passing. This applies to both planned and reactive phases.
+
+### Component Mapping Table
+
+<!-- CUSTOMIZE: Replace framework examples with your stack -->
+
+When the implementation framework is known, include a mapping from visual mockup elements to framework components. This prevents UI being built from the API layer up rather than from the mockup down.
+
+```
+Visual Element     → Framework Component
+Record list        → [YOUR_LIST_COMPONENT]
+Filter dropdown    → [YOUR_SELECT_COMPONENT]
+Create button      → [YOUR_FAB_COMPONENT]
+Page layout        → [YOUR_LAYOUT_DIRECTIVE]
+```
 
 ---
 

@@ -424,18 +424,40 @@ When writing tests for existing production code, you'll sometimes hit methods th
   - PRs require approval and passing checks
 -->
 
-### UI Mockup Conformance (When Mockups Exist)
+### UI Mockup Conformance — Hard Gate (When Mockups Exist)
 
-<!-- CUSTOMIZE: Remove this section if your projects don't use HTML mockups for UI validation. -->
+<!-- CUSTOMIZE: Remove this section if your projects don't use HTML mockups for UI validation. Adjust the framework-specific examples (MudBlazor) to match your UI library. -->
 
-When a project has approved HTML mockups (per `coding/project-scoping-bp.md` Section 5), every UI component must be built side-by-side against its mockup and verified before marking the component as done. This is a gated step.
+When a project has approved HTML mockups (per `coding/project-scoping-bp.md` Section 5), every UI component must pass a three-step gate: Extract → Build → Verify. The component status cannot move to DONE until the verification artifact exists and shows all items passing.
 
-**Per-component process:**
+**Step A — Extract Component Spec (before writing any code):**
+Open the approved mockup. Produce a Component Spec Checklist — one line per visual element, written in your implementation framework's language (e.g., `MudSelect` not "a dropdown"). Write the checklist into the phase plan before coding starts. If no mockup exists for screens being built, the phase blocks until one is approved.
 
-1. Open the approved mockup before writing any UI code. The mockup is the spec.
-2. After building the component, do a visual element-by-element comparison. Check: all data columns, stat cards, action buttons, conditional states (empty, loading, error), pagination, search/filter/export controls.
-3. Document any gaps. A gap means the component is not done.
-4. Fix all gaps before marking the component complete.
+**Step B — Build:**
+Normal implementation. The checklist from Step A is the spec.
+
+**Step C — Verify (after code compiles, before marking DONE):**
+Reopen the mockup. Walk the checklist line by line, marking each ✅ or ❌. Any ❌ means the component is not done. Fix all ❌ items, then re-run the full checklist (not just fixed items). Write the verification output into the phase plan.
+
+<!-- CUSTOMIZE: Replace with your framework's component names -->
+**Example checklist (MudBlazor):**
+```
+☐ @layout AppBaseLayout (not standalone container)
+☐ Back-header: MudPaper with MudIconButton(Icon.ArrowBack)
+☐ MudList with MudListItem per record
+☐ FAB: MudFab Color.Primary for create action
+☐ Empty state: MudAlert with call to action
+```
+
+**Mandatory phase plan structure for UI phases:**
+```
+X.1    Extract component spec from mockup — PENDING
+...    (implementation items)
+X.N-1  Verify against mockup — PENDING
+X.N    CI verification — PENDING
+```
+
+This applies to both planned phases and reactive mid-PR phases.
 
 ### bUnit Component Testing
 
