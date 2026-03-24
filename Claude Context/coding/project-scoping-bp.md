@@ -311,6 +311,45 @@ Every plan should include a "Phase Results" section that gets filled in after ea
 
 ---
 
+## 8d. Per-Wave Execution Checklist
+
+This is the mandatory execution loop for every wave in any plan. It runs automatically after the wave's code work is complete — do not wait to be prompted. If any step is skipped, the wave is not done.
+
+### The 7-Step Loop
+
+**Step 1 — Fix the issues**
+Complete all code changes for this wave per the plan's task list. Every item in the wave's scope should be addressed before moving forward.
+
+**Step 2 — Verify locally**
+Run the build and relevant tests locally. Confirm: no compile errors, no test failures in the affected area. Do not push until local is clean.
+
+**Step 3 — Iterate until local is green**
+If Step 2 surfaces failures, fix them and re-run. Repeat until the local build and tests pass.
+
+**Step 4 — Push to GitHub**
+Commit the wave's changes with a descriptive message referencing the wave number and what changed.
+
+**Step 5 — Watch CI**
+Wait for the GitHub Actions run to complete. A green badge is the gate, not the push itself.
+
+**Step 6 — Fix CI failures and repeat**
+If CI fails, diagnose, fix locally, push again, and return to Step 5. The CI run must be green before the wave closes.
+
+**Step 7 — Update the plan doc**
+Once CI is green, update the plan document in the same session:
+- Mark each completed item as `DONE` in the progress tracker
+- Record the commit hash for each component
+- Record the CI run number
+- Note any deviations or decisions made during the wave that affect later phases
+
+A wave with green CI but no plan update is still open.
+
+### When this loop runs
+
+Every wave. No exceptions for "small" waves, "obvious" changes, or "just a fix."
+
+---
+
 ## 9. Testing Strategy
 
 The scope doc defines how this project will be tested.
@@ -388,6 +427,9 @@ Every project plan doc follows this section order. Sections marked as Track A on
 ## 8c. Phased Execution Protocol
 [Per-phase gate sequence, execution order documented, phase results section present]
 
+## 8d. Per-Wave Execution Checklist
+[7-step loop: fix → verify locally → iterate → push → watch CI → fix CI → update plan — see Section 8d above]
+
 ## 9. Testing Strategy
 [Coverage, must-test paths, mocking, isolation]
 
@@ -450,7 +492,8 @@ Before marking a scope doc complete, verify:
 - [ ] Data model drafts included (Track A) with relationships and defaults
 - [ ] Phases ordered by dependency, each producing something testable
 - [ ] Testing strategy specifies coverage target, must-test paths, and mocking approach
-- [ ] Execution protocol defined: per-phase gate sequence, execution order documented, phase results section present
+- [ ] Execution protocol defined: per-phase gate sequence, execution order documented, phase results section present (see Section 8c)
+- [ ] Wave execution checklist understood: after each wave, run the 7-step loop from Section 8d automatically
 - [ ] Changelog section exists
 - [ ] No banned vocabulary from `writing/banned-writing-styles.md`
 - [ ] File saved to the correct location with the correct naming convention
@@ -458,7 +501,7 @@ Before marking a scope doc complete, verify:
 ---
 
 *Read this file before starting any code project. As new projects are scoped and built, update the standard question bank with questions that keep recurring.*
-*Last updated: 2026-03-15 — Added Track C (technical debt), test count estimation, Phased Execution Protocol (Section 8c), updated template and checklist*
+*Last updated: 2026-03-24 — Added Section 8d Per-Wave Execution Checklist (7-step mandatory loop). Updated template and quality checklist.*
 
 
 ---
