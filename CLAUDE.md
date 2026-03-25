@@ -89,7 +89,7 @@ For each major task type, load these files in order. This prevents missing a dep
 The Cowork VM has a 10 GB root volume that fills up across sessions. Run this before pulling repos or installing packages:
 ```bash
 USAGE=$(df / --output=pcent | tail -1 | tr -dc '0-9')
-if [ "$USAGE" -gt 70 ]; then
+if [ "$USAGE" -gt 85 ]; then
   echo "Disk at ${USAGE}% — running cleanup..."
   pip cache purge 2>/dev/null
   rm -rf /tmp/*-tmp /tmp/*-push /tmp/node-compile-cache 2>/dev/null
@@ -303,18 +303,37 @@ At session start (gate step 2), read `memory/SESSION-INDEX.md` first for the ful
 
 <!--
   OPTIONAL BUT RECOMMENDED: If you share your context framework with a team
-  or publicly, use a multi-tier repo architecture to keep data separated.
+  or publicly, use a multi-tier architecture to keep data separated.
 
-  Example structure:
+  Personal tier — pick one that fits your workflow:
 
-  | Repo | Audience | Contains |
+  Option A — Private Git repo (GitHub, GitLab, Azure DevOps, etc.)
+    Best when: you want version history on your personal context, or you're
+    on multiple machines and prefer git pull/push to sync.
+    Contains: Full CLAUDE.md, all context files, memory, tasks, credentials
+    Note: Never commit raw API keys or secrets to git — use a secrets manager
+    and store only the key_helper unlock script. See security-practices.md.
+
+  Option B — Cloud file sync (OneDrive, Google Drive, Dropbox, etc.)
+    Best when: you want zero-friction sync across machines without git discipline.
+    Files stay in a synced folder; the AI reads them directly from the mount path.
+    Contains: Full CLAUDE.md, all context files, memory, tasks, credentials
+    No push step needed — sync is automatic when files are saved.
+
+  Option C — Local only
+    Best when: single machine, no team, no sharing. Simplest setup.
+    No sync needed — just keep files in a local ClaudeCowork folder.
+
+  Shared tiers (same regardless of personal tier choice):
+
+  | Tier | Audience | Contains |
   |------|----------|----------|
-  | Private repo | You only | Full CLAUDE.md, all context files, memory, tasks, credentials |
+  | Personal (A/B/C above) | You only | Full CLAUDE.md, all context files, memory, tasks, credentials |
   | Team repo | Your team | Sanitized standards — coding, security, writing rules, API references |
   | Public repo | Anyone | Templatized framework with `<!-- CUSTOMIZE -->` blocks — no proprietary data |
 
   Propagation rules:
-  - Changes flow downstream: Private → Team → Public
+  - Changes flow downstream: Personal → Team → Public
   - Never skip the team repo and push directly to public
   - When a context file is updated, check if the change should propagate
   - Structure changes propagate. Data changes don't.
