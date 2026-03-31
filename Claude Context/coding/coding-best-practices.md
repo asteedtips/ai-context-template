@@ -390,6 +390,34 @@ When writing tests for existing production code, you'll sometimes hit methods th
 3. **If the refactor is non-trivial,** stop and flag it. Document the limitation in the test plan and create a separate work item.
 4. **For reflection tests,** the untestability constraint doesn't apply because they don't execute production code.
 
+### 6.10 Background Task Queue Testing
+
+When production code queues work via fire-and-forget patterns (e.g., `IBackgroundTaskQueue`), mocking libraries return a completed task without executing the passed lambda. The lambda's side effects never run during tests.
+
+**Don't assert on the lambda's side effects.** Instead, verify that:
+1. The queuing method was called (proves the work was queued)
+2. The initial state was set correctly before queuing
+3. If the service returns a result, the result reflects the pre-queue state
+
+**If you need to test the lambda's logic,** extract it into a separate testable method and test that method directly.
+
+### 6.11 Grep-Before-Push for Signature Changes
+
+When a method signature changes (constructor params added/removed, return type changed, method renamed), test files referencing that method will break. CI will catch this, but you can save a round-trip by grepping first.
+
+**Before pushing any signature change:**
+
+```bash
+# Find all test references to the changed class/method
+grep -r "ClassName" Tests/ --include="*.cs" -l
+# Or for constructor changes specifically
+grep -r "new ClassName(" Tests/ --include="*.cs" -l
+```
+
+Update every file in the results before committing. Constructor changes can affect multiple test files — a single grep catches all of them in one pass.
+
+---
+
 ---
 
 ## 7. API Design Standards
@@ -583,6 +611,40 @@ When modifying existing code that already has tests (as opposed to writing net-n
 
 ---
 
+## 14. Verification Agent Protocol
+
+When writing or modifying code, Claude can spin up independent sub-agents to review the work before marking it done. The protocol is complexity-gated — small changes don't need it, large changes require it.
+
+### 14.1 Complexity Tiers
+
+| Tier | Scope | Agent Strategy |
+|------|-------|----------------|
+| **Tier 1 — Small** | Single file, <50 lines changed, no UI | No verification agent needed. |
+| **Tier 2 — Medium** | Multiple files, new service methods, or any UI work | One verification agent after coding is complete. |
+| **Tier 3 — Large** | New feature, multi-phase, touches external APIs or database schema | Two verification agents in parallel after each phase milestone. |
+
+When in doubt, round up — a Tier 2 review on a borderline-Tier-1 change costs seconds; missing a real issue costs a correction phase.
+
+### 14.2 What Each Agent Checks
+
+**Code Review Agent (Tier 2 and Tier 3):** Receives the diff plus this best practices file. Checks layer references, DI patterns, secrets management, async usage, explicit typing, braces, XML docs, and exception handling. Any failure blocks the task from being marked done.
+
+**UI Conformance Agent (Tier 2+ with UI):** Only runs when an approved mockup exists. Walks the component spec checklist line by line against the implemented markup. Any mismatch blocks the task.
+
+**External API Agent (Tier 3 only):** Only runs when the change touches external APIs. Checks retry policies, no hardcoded credentials, and proper error surfacing.
+
+### 14.3 When Agents Run
+
+Agents run after coding is complete but before the task or phase is marked done. They do not replace CI — CI validates compilation and tests. Verification agents validate pattern compliance that CI can't check (mockup fidelity, architecture rules, naming conventions).
+
+**Sequence:** Code → verification agents → fix failures → push to feature branch → CI → mark done.
+
+### 14.4 Agent Isolation
+
+Verification agents run with `isolation: "worktree"` when possible, giving them a clean copy of the repository separate from the working tree.
+
+---
+
 ## 12. Verification Agent Protocol
 
 When Claude is writing or modifying code, it can spin up independent sub-agents to review the work before marking it done. This catches pattern violations, UI conformance issues, and architectural drift that would otherwise surface in human code review. The protocol is complexity-gated — small changes don't need it, large changes require it.
@@ -675,3 +737,4 @@ Verification agents run with worktree isolation when possible, giving them a cle
 
 **Notes:**
 <!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->
+*Last updated: 2026-03-31 — Added Sections 6.10, 6.11, and 14 (Verification Agent Protocol).*
