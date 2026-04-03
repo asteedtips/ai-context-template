@@ -83,6 +83,7 @@ These questions apply to most code projects. Not all will be relevant to every p
 - Does this need its own deployment pipeline, or does it deploy with an existing app?
 - Single-tenant or multi-tenant? If multi-tenant, how is tenant isolation achieved?
 - Does this introduce a new external dependency (third-party API, new cloud service, new package)?
+- **What are the existing naming and structural conventions for this type of component?** Before applying a generic best practice, check what the codebase actually does. Grep for the pattern (e.g., `[Route(` for controller routing, layout patterns for pages, component names for headers). Use the dominant existing convention. If the convention should change, flag it as a separate decision. See `coding-best-practices.md` Section 7.5 for the full rule.
 
 ### Data & Persistence
 
@@ -91,6 +92,7 @@ These questions apply to most code projects. Not all will be relevant to every p
 - Do existing rows need backfilling or migration scripts?
 - What's the data retention policy? Archive, soft delete, hard delete, temporal tables?
 - Are there default value assumptions that need to change?
+- **For new entities: have you run through the entity configuration checklist?** Primary key, RowVersion with concurrency token, temporal table config (shadow properties), audit columns with DB defaults, Uid defaults, indexes, unique constraints, navigation properties. See `coding-best-practices.md` Section 4.6 for the full checklist. Every item a sibling entity has, the new entity should have too.
 
 ### Authentication & Authorization
 
@@ -114,6 +116,7 @@ These questions apply to most code projects. Not all will be relevant to every p
 - Who are the user roles that interact with this? Do they see different views?
 - How does the user discover this feature? Navigation changes, feature flags, new routes?
 - What's the notification model? In-app, push, email, some combination?
+- **What is the expected data scale for list/selection controls?** If a dropdown could contain more than ~20 items (e.g., admin managing multiple gyms, many users in a search), use a searchable component instead of a static dropdown. The component choice is a scoping decision, not a late-stage UX fix.
 
 ### Testing & Quality
 

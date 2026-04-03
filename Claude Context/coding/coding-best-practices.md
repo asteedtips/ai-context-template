@@ -82,6 +82,14 @@
 
 These rules apply across your codebase. Enforce via `.editorconfig` where possible.
 
+**Required `.editorconfig` analyzer rules:** The following Roslyn analyzers should be set to `warning` (or `error` in CI) in the solution-level `.editorconfig`. These catch common code quality issues that slip through PR review:
+
+- `dotnet_diagnostic.IDE0005.severity = warning` (Remove unnecessary using directives)
+- `dotnet_diagnostic.IDE0055.severity = warning` (Fix formatting)
+- `dotnet_diagnostic.CS8600.severity = warning` (Converting null literal or possible null value to non-nullable type)
+
+**Lesson learned:** Unused imports, format inconsistencies, and null reference issues often ship silently. If these analyzers are enabled as build warnings, the CI pipeline catches them before merge.
+
 **Explicit typing over `var`:** Use explicit types when declaring variables. Implicit typing (`var`) reduces readability when a developer returns to unfamiliar code or reviews a PR without IDE tooling. Exception: LINQ expressions where the return type is obvious from the method chain and would be verbose to spell out.
 
 ```csharp
@@ -173,6 +181,18 @@ public async Task<[YOUR-RESULT-DTO]> DoWorkAsync(int id, CancellationToken ct)
   - New config = new POCO property + new config store key + integration test validation
 -->
 
+### 3.10 Internal Package Version Management
+
+When working on a feature branch that spans multiple weeks, internal packages (e.g., shared libraries, common DTOs, kernel utilities) may receive updates on `main` during the feature work. Before handing off or merging a long-lived feature branch:
+
+1. Check the current version of internal packages on `main` or the latest published version.
+2. Update all `.csproj` references in the feature branch to the latest stable version.
+3. Build and test to confirm compatibility.
+
+**Why:** If shared packages get bug fixes or new features while the feature branch is open, merging the branch will revert those packages to the old version unless the branch is updated first. This creates silent regressions.
+
+**Lesson learned:** A feature branch pinned an internal package at an old version for the duration of the project. By handoff, a newer version was current. The code had to bump all `.csproj` files. A pre-handoff version check would have caught it.
+
 ---
 
 ## 4. Database Standards
@@ -213,6 +233,70 @@ If your project uses SQL Server, consider making the SSDT project the single sou
 - **Constraint naming:** Consistent prefixes — `DF_` for defaults, `PK_` for primary keys, `FK_` for foreign keys, `CK_` for check constraints.
 - **Lookup tables:** Status/type enums become SQL lookup tables seeded via `MERGE` scripts.
 - **Soft delete:** `IsDeleted BIT NOT NULL DEFAULT 0` on every table.
+
+### 4.5 Temporal Table Configuration (EF Core 9+)
+
+In EF Core 9, temporal table period columns (`SysStart`, `SysEnd`) are **shadow properties** by default. Do not add them as CLR properties on the entity class. The entity owns the business columns; the temporal tracking columns are owned by EF Core and your database.
+
+**Correct configuration (Fluent API):**
+
+```csharp
+entity.ToTable("[YOUR-TABLE]", "[YOUR-SCHEMA]")
+    .ToTable(tb => tb.IsTemporal(ttb =>
+    {
+        ttb.UseHistoryTable("[YOUR-TABLE]History", "[YOUR-SCHEMA]");
+        ttb.HasPeriodStart("SysStart").HasColumnName("SysStart");
+        ttb.HasPeriodEnd("SysEnd").HasColumnName("SysEnd");
+    }));
+```
+
+**Incorrect pattern (causes runtime exception):**
+```csharp
+// DO NOT add these to the entity class — they conflict with EF shadow properties
+public DateTime SysStart { get; set; }
+public DateTime SysEnd { get; set; }
+```
+
+**Lesson learned:** Adding `SysStart` and `SysEnd` as CLR properties causes EF Core to treat them as both explicit and temporal shadow properties, producing a runtime conflict. Always use shadow properties for temporal tracking columns.
+
+### 4.6 New Entity Configuration Checklist
+
+When adding a new [YOUR-ORM] entity to the codebase, verify every item in this checklist before marking the entity complete. These are required configurations that existing entities all have. Missing any one causes subtle runtime bugs.
+
+| Item | What to configure | Example |
+|------|-------------------|---------|
+| Primary key | `entity.HasKey(e => e.Id);` | Every entity |
+| Table and schema | `entity.ToTable("[TABLE]", "[schema]");` | `entity.ToTable("ChatThread", "dbo");` |
+| RowVersion / concurrency | `entity.Property(e => e.RowVer).IsRequired().IsRowVersion().IsConcurrencyToken();` | Required on every table with a `RowVer` column |
+| Temporal table config | `IsTemporal()` with `HasPeriodStart`/`HasPeriodEnd` as shadow properties (see Section 4.5) | Every temporal table |
+| Audit columns | `HasDefaultValueSql("[YOUR-DB-DEFAULT]")` for audit columns, `HasDefaultValue(true)` for defaults, etc. | Match existing entity patterns |
+| Uid column | `HasDefaultValueSql("[YOUR-GUID-FUNCTION]")` | Every entity with a `Uid` GUID column |
+| Indexes | Named indexes with `HasDatabaseName()` | `entity.HasIndex(e => e.GymId).HasDatabaseName("IX_ChatThread_GymId");` |
+| Unique constraints | Named unique indexes | `entity.HasIndex(e => new { e.UserId, e.GymId }).IsUnique().HasDatabaseName("UQ_ChatThread_UserGym");` |
+| Navigation properties | `HasOne`/`HasMany` with `WithMany`/`WithOne` + `HasForeignKey` + `OnDelete` behavior | Check existing entities for the pattern |
+| Default values | `HasDefaultValue()` or `HasDefaultValueSql()` for columns with DB defaults | See Section 4.7 below |
+
+### 4.7 Database-Defaulted Values: Don't Set in Code
+
+If a column has a `HasDefaultValueSql()` or `HasDefaultValue()` configuration in the Fluent API, application code must not manually assign that value when creating a new entity instance. The database owns the default.
+
+**Why:** (a) Setting it in code contradicts the single source of truth (the DB default). (b) Server-side defaults (like `GETUTCDATE()`) use the database server's clock, while code-side defaults use the app server's clock; in distributed systems these can diverge. (c) Future changes to the default only need to happen in one place (the DB), not in every code path that creates the entity.
+
+```csharp
+// Correct — let the DB default handle it
+var entity = new [YOUR-ENTITY]
+{
+    UserId = userId,
+    // Do NOT set audit columns; the DB will
+};
+
+// Wrong — manually setting a DB-defaulted column
+var entity = new [YOUR-ENTITY]
+{
+    UserId = userId,
+    CreatedDate = DateTime.UtcNow  // Let the DB handle this via GETUTCDATE()
+};
+```
 
 ---
 
@@ -433,6 +517,12 @@ Update every file in the results before committing. Constructor changes can affe
   - Version APIs from the start (`/api/v1/...`)
 -->
 
+### 7.5 Controller Routing: Match Existing Convention First
+
+Before applying any routing convention to a new controller, check what the existing controllers in the project actually use. If the codebase uses `[Route("[controller]")]` consistently, use that. If it uses explicit versioned routes (`/api/v1/{resource}`), use that. Do not apply a generic best practice that contradicts the project's established pattern.
+
+**Process:** When adding a new controller, `grep` for `[Route(` across existing controllers. Use the dominant pattern. If you believe the project should adopt a different convention, flag it as a separate refactor decision in the scoping doc; don't mix a convention change into a feature branch.
+
 ---
 
 ## 8. CI/CD Standards
@@ -513,6 +603,46 @@ For Blazor component tests, use bUnit. A single shared UI test project is prefer
      your team has encountered. Example: .NET 10 changed JsonContent.Create() to default
      to camelCase serialization (JsonSerializerOptions.Web), breaking external API calls
      that expect PascalCase. Document the fix pattern and when to audit for it. -->
+
+### 8.3 Page Header / Navigation Bar Consistency
+
+Before building a page header (back button bar, title bar, app bar), check what the existing pages in the same feature area use. The goal is visual and structural consistency across the app.
+
+**How to check:** Open 2-3 sibling pages in the same area. Look for which UI library component they use for the top bar: the app bar component, a panel/paper with a theme class, or a toolbar. Use the same one.
+
+**When building a list/index page:** Use the standard layout wrapper (which provides the app navigation chrome). The page gets the standard app chrome automatically. Do not build a custom app bar for pages that are part of the normal navigation flow.
+
+**When building a detail/immersive page** (e.g., a detail view or modal): A custom back-header bar is appropriate. Use the component that sibling detail pages use.
+
+**Lesson learned:** Inconsistent header bars across similar pages create visual confusion and require rework. A 30-second check of sibling pages prevents it.
+
+### 8.4 Dialog and Form Validation Checklist
+
+Every dialog that accepts user input must include:
+
+1. **Required field validation**: Mark every field that can't be blank, with clear validation error messages.
+2. **Form validity tracking**: Bind the form's validity state so you can gate actions based on it.
+3. **Submit button gating**: Disable the submit button when the form is invalid or an operation is in progress. Never allow submitting an invalid form.
+4. **Loading state**: Show a loading indicator on the submit button and disable both Submit and Cancel while the operation runs.
+5. **Validation functions**: Custom validators (email format, phone format, numeric ranges, etc.) for fields that require business logic beyond required/not-required.
+
+**Example pattern:**
+```
+Form validity state tracked: isValid = true/false
+Submit button Disabled="@(!isValid || isLoading)"
+Cancel button Disabled="@isLoading"
+Loading spinner shown when isLoading == true
+```
+
+### 8.5 SharedComponents Layer Check
+
+Before committing any new UI page, ask: **"Will another platform eventually need the same UI?"**
+
+If yes — or even if it's likely — the UI belongs in SharedComponents (or your equivalent shared layer) as a self-contained component. The page becomes a thin routing shell. Building it as a page-only component forces other platforms to duplicate that work later, which is exactly what a shared component layer exists to prevent.
+
+**Self-contained means:** The SharedComponent injects all its own services and owns all UI — including headers, loading state, empty state, and action buttons. Nothing is passed via parameters that the component could resolve itself via DI.
+
+**Applies to all page modifications, not just new pages.** If you are adding content to an existing page that exists across multiple platforms (e.g., adding a new card to a dashboard), check whether the page has already been extracted to SharedComponents. If both platform copies exist with duplicated logic, extract to SharedComponents as part of the change. Do not add the content to both platform copies independently.
 
 ---
 
