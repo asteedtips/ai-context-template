@@ -1,4 +1,4 @@
-# Source Control — Git Repository Management
+# Source Control  -  Git Repository Management
 <!-- CUSTOMIZE: Update org names, PAT variable names, and repo names for your organization -->
 
 All code repositories clone into the `Source Control/` folder, organized by organization:
@@ -31,7 +31,7 @@ Don't mix them. Git operations use the URL format. API operations use the header
 
 ---
 
-## Cloning Behavior — Mounted Volume Workaround
+## Cloning Behavior  -  Mounted Volume Workaround
 
 The Cowork VM's mounted filesystem does not support `.git/config.lock` operations during `git clone`. The workaround is to clone to `/tmp/` first, then `rsync` to the target path:
 
@@ -95,7 +95,7 @@ rm -f "$REPO_DIR/.git"/*.lock 2>/dev/null
 
 ---
 
-## Docs Folder Convention — Code Repos
+## Docs Folder Convention  -  Code Repos
 
 Every code repo uses a `docs/` folder for project plans, mockups, and reference documentation.
 
@@ -115,7 +115,7 @@ docs/
 3. **Reference docs stay at root.** Documentation that applies to the whole repo and outlives any single issue stays at `docs/` root level.
 4. **Release notes go in docs repos, not code repos.**
 
-### Workflow — Issue Lifecycle in Docs
+### Workflow  -  Issue Lifecycle in Docs
 
 1. **Scoping:** Create `docs/draft-{project-name}/` with plan and mockups.
 2. **Issue created:** Rename folder to `docs/feat-issue-{N}/`.
@@ -139,7 +139,7 @@ docs/
 
 | Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
 |------|-------------|------------|-------------|---------------|
-| 2026-03-20 | `git commit` on a mounted volume path failed with "Operation not permitted" — prior note said commit/push worked directly | macOS APFS owns the mount; Linux VM cannot write git temp objects or lock files during commit | Corrected the guidance: write ops are unreliable on mounted volumes. Added `/tmp/` clone pattern as the standard for all commit operations. | — |
+| 2026-03-20 | `git commit` on a mounted volume path failed with "Operation not permitted"  -  prior note said commit/push worked directly | macOS APFS owns the mount; Linux VM cannot write git temp objects or lock files during commit | Corrected the guidance: write ops are unreliable on mounted volumes. Added `/tmp/` clone pattern as the standard for all commit operations. |  -  |
 
 **Notes:**
 <!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->

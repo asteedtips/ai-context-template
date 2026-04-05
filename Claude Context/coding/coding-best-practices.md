@@ -1,870 +1,249 @@
 # Coding Best Practices
+
 **[YOUR NAME] | [YOUR TITLE] | [YOUR COMPANY]**
 *Reference file for all code creation, review, and modification tasks*
 *Last Updated: [DATE]*
 
 ---
 
-> **How to use this file**: Read this file before writing, reviewing, or modifying any code. It defines the standards for your codebase. Where a specific context file has deeper guidance (e.g., `security/security-practices.md` for credential handling), this file links to it rather than duplicating.
-
-> **Cross-references**: `security/security-practices.md` governs all credential and secrets management. `writing/best-practices-creation.md` governs documentation output formats. `writing/banned-writing-styles.md` applies to all written deliverables including code comments and README files.
-
----
-
-## 1. Architecture Standards
-
-<!--
-  CUSTOMIZE: Define your project layering, naming conventions, and solution organization.
-
-  Example layered architecture:
-  ```
-  Portal / API  →  Service  →  Service.Entity  →  Database
-     (UI/HTTP)     (Logic)     (DTOs/ViewModels)   (Data Access)
-  ```
-
-  Define rules like:
-  - No upward references (data layer never references UI layer)
-  - Shared code goes in a shared project
-  - Business logic belongs in the service layer, not in API controllers
--->
-
-### Naming Conventions
-
-<!--
-  CUSTOMIZE: Define your project, namespace, class, method, and file naming patterns.
-
-  Examples:
-  - Projects: `{Product}.{Feature}.{Layer}`
-  - Classes: Entity=singular nouns, Service=`{Feature}Service`, DTO=suffix `Dto` or `Vm`
-  - Methods: Async methods end with `Async` when sync overload exists
-  - Files: One class per file, file name matches class name
--->
-
----
-
-## 2. Code Quality Standards
-
-### Dependency Injection
-
-- Register services through extension methods on `IServiceCollection`
-- Each feature owns its own DI registration method
-- Constructor injection only — no service locator pattern
-- Use `AddScoped` for services that depend on database contexts
-
-### Error Handling
-
-- All service methods return a result wrapper (success/fail + data + error message)
-- Don't throw exceptions for expected business failures
-- Catch blocks must re-throw, return a failure result, or wrap in a domain exception. **Never swallow exceptions silently.**
-- Use structured logging (`ILogger<T>`), not `Console.WriteLine`
-- Global exception middleware should catch unhandled exceptions and return consistent error responses
-
-### Logging
-
-- Use a centralized telemetry service (Application Insights, Datadog, etc.)
-- Generate a correlation ID per operation and include in every log entry
-- Log at `Information` for operation start/completion, `Warning` for recoverable issues, `Error` for failures
-- Never log PII or secrets. Log entity IDs and correlation IDs instead.
-
-### Async Patterns
-
-- All I/O-bound operations must be async
-- No `.Result` or `.Wait()` calls on Tasks (deadlock risk)
-- Use `CancellationToken` parameters on async methods and pass through to all I/O calls
-
-### Code Comments
-
-- Comment *why* the code does something non-obvious, not what it does
-- XML doc comments on all public methods in service and entity projects
-- TODO/HACK/FIXME comments must have a corresponding tracked work item
-
-### 2.6 Code Style
-
-These rules apply across your codebase. Enforce via `.editorconfig` where possible.
-
-**Required `.editorconfig` analyzer rules:** The following Roslyn analyzers should be set to `warning` (or `error` in CI) in the solution-level `.editorconfig`. These catch common code quality issues that slip through PR review:
-
-- `dotnet_diagnostic.IDE0005.severity = warning` (Remove unnecessary using directives)
-- `dotnet_diagnostic.IDE0055.severity = warning` (Fix formatting)
-- `dotnet_diagnostic.CS8600.severity = warning` (Converting null literal or possible null value to non-nullable type)
-
-**Lesson learned:** Unused imports, format inconsistencies, and null reference issues often ship silently. If these analyzers are enabled as build warnings, the CI pipeline catches them before merge.
-
-**Explicit typing over `var`:** Use explicit types when declaring variables. Implicit typing (`var`) reduces readability when a developer returns to unfamiliar code or reviews a PR without IDE tooling. Exception: LINQ expressions where the return type is obvious from the method chain and would be verbose to spell out.
-
-```csharp
-// Preferred
-[YOUR-ENTITY-TYPE] entity = await _service.GetEntityAsync(id, ct);
-List<[YOUR-DTO-TYPE]> items = result.Data;
-
-// Avoid
-var entity = await _service.GetEntityAsync(id, ct);
-var items = result.Data;
-```
-
-**Always use braces on control flow:** Even when the body is a single line, wrap `if`, `else`, `else if`, `for`, `foreach`, and `while` blocks in braces. No single-line conditionals.
-
-```csharp
-// Preferred
-if (id == 0)
-{
-    return BadRequest("Invalid input.");
-}
-
-// Avoid
-if (id == 0) return BadRequest("Invalid input.");
-```
-
-**`virtual` on all public service methods:** Every public method on a service class must be declared `virtual`. This is required for Moq to intercept methods when the service is mocked as a concrete class. Without `virtual`, Moq throws `NotSupportedException` on Setup/Verify calls, and with `MockBehavior.Loose` the real method executes against null dependencies causing `NullReferenceException`.
-
-```csharp
-// Required — every public service method
-public virtual async Task<[YOUR-RESULT-DTO]> DoWorkAsync(int id, CancellationToken ct)
-
-// Wrong — will break any test that mocks this service
-public async Task<[YOUR-RESULT-DTO]> DoWorkAsync(int id, CancellationToken ct)
-```
-
----
-
-## 3. Configuration & Settings Standards
-
-<!--
-  CUSTOMIZE: Define your centralized configuration pattern. The goal is ONE way to access
-  configuration across your entire solution — no per-feature IOptions<T>, no IConfiguration
-  injection in services, no standalone settings POCOs with services.Configure<T>().
-
-  Key decisions to document:
-  - Where config is stored (Azure App Configuration, appsettings.json, AWS Parameter Store, etc.)
-  - How it's bound to code (single POCO tree, IOptions, custom service wrapper)
-  - The hierarchy for organizing settings (by feature, by environment, by provider)
-  - How secrets integrate (Key Vault references, environment variables, etc.)
-  - How Azure Functions / background workers access the same config as the main app
-  - The process for adding new configuration (what to create, where, and how to test)
-
-  Example architecture:
-  ```
-  Config Store (e.g., Azure App Configuration)
-    ↓ bound at startup
-  Strongly-typed POCO tree (e.g., SettingsConfiguration)
-    ↓ wrapped by
-  SettingsService (scoped DI service)
-    ↓ injected into
-  Feature services (via constructor injection)
-  ```
-
-  Example hierarchy:
-  ```
-  SettingsConfiguration
-  ├── App                    ← Feature-specific operational config (timeouts, batch sizes)
-  │   ├── AppProvider        ← External vendor integrations used by one feature
-  │   └── (feature classes)  ← Operational knobs per feature
-  ├── Shared                 ← Shared infrastructure and cross-feature vendor config
-  │   └── SharedProvider     ← Vendor integrations used by multiple features
-  └── ActiveEnvironment      ← Environment discriminator
-  ```
-
-  Example service injection:
-  ```csharp
-  public partial class ExampleService(
-      SettingsService settingsService,
-      LogService logService) : BaseService(logService)
-  {
-      private readonly string ApiUrl = settingsService.Settings.App.AppProvider.Example.ApiUrl;
-  }
-  ```
-
-  Rules to enforce:
-  - Services extract settings into private readonly fields at construction time
-  - Never inject IConfiguration or IOptions<T> directly into feature services
-  - All Azure Functions call the same settings initialization as the main app
-  - New config = new POCO property + new config store key + integration test validation
--->
-
-### 3.10 Internal Package Version Management
-
-When working on a feature branch that spans multiple weeks, internal packages (e.g., shared libraries, common DTOs, kernel utilities) may receive updates on `main` during the feature work. Before handing off or merging a long-lived feature branch:
-
-1. Check the current version of internal packages on `main` or the latest published version.
-2. Update all `.csproj` references in the feature branch to the latest stable version.
-3. Build and test to confirm compatibility.
-
-**Why:** If shared packages get bug fixes or new features while the feature branch is open, merging the branch will revert those packages to the old version unless the branch is updated first. This creates silent regressions.
-
-**Lesson learned:** A feature branch pinned an internal package at an old version for the duration of the project. By handoff, a newer version was current. The code had to bump all `.csproj` files. A pre-handoff version check would have caught it.
-
----
-
-## 4. Database Standards
-
-<!--
-  CUSTOMIZE: Define your database access patterns.
-
-  Common topics:
-  - ORM lifecycle (DbContext per operation via factory, not per request)
-  - Read-only queries use `.AsNoTracking()` or projections
-  - Stored procedures for batch operations
-  - Migration naming and ordering
-  - Schema organization
--->
-
-### 4.1 SSDT-First Schema Management (Optional Pattern for SQL Server Projects)
-
-<!-- CUSTOMIZE: If your project uses SQL Server with SSDT (SQL Server Data Tools), adopt this pattern for new bounded contexts. Remove this section if you use a different database or prefer ORM-managed migrations. -->
-
-If your project uses SQL Server, consider making the SSDT project the single source of truth for database schema. New bounded contexts define their schema in SSDT `.sql` files. An ORM reverse-engineering tool (e.g., EF Core Power Tools) generates entity classes from the published database.
-
-**The gated workflow:**
-1. Define tables, sequences, and seed scripts as `.sql` files in the SSDT project.
-2. Register folder entries in the `.sqlproj` file.
-3. Add seed script references to `Script.PostDeployment.sql`.
-4. Publish the SSDT project to the target database.
-5. **Reverse-engineer entity classes** from the published schema. This step is a gated dependency in the phase plan; call it out as its own line item so it doesn't get skipped. See `coding/project-scoping-bp.md` Section 8.
-6. Delete any hand-written entities or ORM migration files. SSDT owns the schema; the reverse-engineer tool owns entity generation. No dual sources.
-
-**Recommended conventions:**
-
-<!-- CUSTOMIZE: Adjust these conventions to match your team's standards. The items below are a starting point. -->
-
-- **Primary keys:** `INT` backed by sequences. Default constraint wires the PK to the sequence.
-- **Uid column:** `UNIQUEIDENTIFIER` with `DEFAULT (NEWID())` and a unique index on every table.
-- **Audit columns:** `ModifyUser`, `ModifyDate`, `CreateUser`, `CreateDate` on every table.
-- **System versioning:** Temporal tables (`SYSTEM_VERSIONING = ON`) with `*Hist` history tables.
-- **Constraint naming:** Consistent prefixes — `DF_` for defaults, `PK_` for primary keys, `FK_` for foreign keys, `CK_` for check constraints.
-- **Lookup tables:** Status/type enums become SQL lookup tables seeded via `MERGE` scripts.
-- **Soft delete:** `IsDeleted BIT NOT NULL DEFAULT 0` on every table.
-
-### 4.5 Temporal Table Configuration (EF Core 9+)
-
-In EF Core 9, temporal table period columns (`SysStart`, `SysEnd`) are **shadow properties** by default. Do not add them as CLR properties on the entity class. The entity owns the business columns; the temporal tracking columns are owned by EF Core and your database.
-
-**Correct configuration (Fluent API):**
-
-```csharp
-entity.ToTable("[YOUR-TABLE]", "[YOUR-SCHEMA]")
-    .ToTable(tb => tb.IsTemporal(ttb =>
-    {
-        ttb.UseHistoryTable("[YOUR-TABLE]History", "[YOUR-SCHEMA]");
-        ttb.HasPeriodStart("SysStart").HasColumnName("SysStart");
-        ttb.HasPeriodEnd("SysEnd").HasColumnName("SysEnd");
-    }));
-```
-
-**Incorrect pattern (causes runtime exception):**
-```csharp
-// DO NOT add these to the entity class — they conflict with EF shadow properties
-public DateTime SysStart { get; set; }
-public DateTime SysEnd { get; set; }
-```
-
-**Lesson learned:** Adding `SysStart` and `SysEnd` as CLR properties causes EF Core to treat them as both explicit and temporal shadow properties, producing a runtime conflict. Always use shadow properties for temporal tracking columns.
-
-### 4.6 New Entity Configuration Checklist
-
-When adding a new [YOUR-ORM] entity to the codebase, verify every item in this checklist before marking the entity complete. These are required configurations that existing entities all have. Missing any one causes subtle runtime bugs.
-
-| Item | What to configure | Example |
-|------|-------------------|---------|
-| Primary key | `entity.HasKey(e => e.Id);` | Every entity |
-| Table and schema | `entity.ToTable("[TABLE]", "[schema]");` | `entity.ToTable("ChatThread", "dbo");` |
-| RowVersion / concurrency | `entity.Property(e => e.RowVer).IsRequired().IsRowVersion().IsConcurrencyToken();` | Required on every table with a `RowVer` column |
-| Temporal table config | `IsTemporal()` with `HasPeriodStart`/`HasPeriodEnd` as shadow properties (see Section 4.5) | Every temporal table |
-| Audit columns | `HasDefaultValueSql("[YOUR-DB-DEFAULT]")` for audit columns, `HasDefaultValue(true)` for defaults, etc. | Match existing entity patterns |
-| Uid column | `HasDefaultValueSql("[YOUR-GUID-FUNCTION]")` | Every entity with a `Uid` GUID column |
-| Indexes | Named indexes with `HasDatabaseName()` | `entity.HasIndex(e => e.GymId).HasDatabaseName("IX_ChatThread_GymId");` |
-| Unique constraints | Named unique indexes | `entity.HasIndex(e => new { e.UserId, e.GymId }).IsUnique().HasDatabaseName("UQ_ChatThread_UserGym");` |
-| Navigation properties | `HasOne`/`HasMany` with `WithMany`/`WithOne` + `HasForeignKey` + `OnDelete` behavior | Check existing entities for the pattern |
-| Default values | `HasDefaultValue()` or `HasDefaultValueSql()` for columns with DB defaults | See Section 4.7 below |
-
-### 4.7 Database-Defaulted Values: Don't Set in Code
-
-If a column has a `HasDefaultValueSql()` or `HasDefaultValue()` configuration in the Fluent API, application code must not manually assign that value when creating a new entity instance. The database owns the default.
-
-**Why:** (a) Setting it in code contradicts the single source of truth (the DB default). (b) Server-side defaults (like `GETUTCDATE()`) use the database server's clock, while code-side defaults use the app server's clock; in distributed systems these can diverge. (c) Future changes to the default only need to happen in one place (the DB), not in every code path that creates the entity.
-
-```csharp
-// Correct — let the DB default handle it
-var entity = new [YOUR-ENTITY]
-{
-    UserId = userId,
-    // Do NOT set audit columns; the DB will
-};
-
-// Wrong — manually setting a DB-defaulted column
-var entity = new [YOUR-ENTITY]
-{
-    UserId = userId,
-    CreatedDate = DateTime.UtcNow  // Let the DB handle this via GETUTCDATE()
-};
-```
+> **How to use this file**: This file contains the thinner sections of the coding standards. Larger topic areas have been extracted into standalone files for on-demand loading. Start at `coding-index.md` to find the right file for your task, or use the quick reference below.
+
+> **Graph nodes (extracted topics):**
+> - `coding-architecture.md`  -  Project layering, naming conventions, entity/DTO mapping, enums, solution organization
+> - `coding-quality.md`  -  DI registration, error handling, logging, async patterns, code comments, code style
+> - `coding-config.md`  -  Configuration patterns, service injection, operational vs structural config
+> - `coding-database.md`  -  DbContext lifecycle, repository patterns, schema, entity checklist
+> - `coding-testing.md`  -  Coverage targets, test structure, unit/integration tests, isolation, dry run mode
+> - `coding-blazor-ui.md`  -  Component patterns, CSS builders, page checklist, header consistency, dialog validation, mockup conformance gate
+> - `coding-verification.md`  -  Verification agent protocol (complexity tiers, what agents check)
+
+> **Cross-references:** `security/security-practices.md` governs all credential and secrets management. `writing/best-practices-creation.md` governs documentation output formats. `writing/banned-writing-styles.md` applies to all written deliverables including code comments and README files. `github-actions-bp.md` covers GitHub Actions CI/CD implementation details.
 
 ---
 
 ## 5. Security Standards
 
-### Secrets Management
+### 5.1 Secrets Management
 
-**Non-negotiable:** All secrets live in your secret store. See `security/security-practices.md`.
+**Non-negotiable:** All secrets live in a secrets vault (Azure Key Vault or equivalent). Never commit credentials to source control.
 
-**Database access is read-only by default.** AI agents may run `SELECT` queries freely but must not execute any write, update, delete, or DDL operation without explicit approval. This applies regardless of the credential's actual permission level. See the "Database Access — Read-Only by Default" section in `security/security-practices.md` for the full policy.
+**Database access is read-only by default.** Agents may run read-only queries freely but must not execute write, update, delete, or DDL operations without explicit approval. This applies regardless of the credential's actual permission level.
 
-- Config files may contain non-secret values (URLs, feature flags, timeouts). Never client secrets, API keys, tokens, or passwords.
-- Connection strings in production should use Managed Identity where possible.
+**Rules for all projects:**
+- Application configuration may contain non-secret values (URLs, feature flags, timeouts). It must never contain client secrets, API keys, tokens, or passwords.
+- Development configuration can use local secrets storage for development only. Never commit secret values.
+- Connection strings in production must use managed identity or secure credential storage, falling back to vault references.
 
-### Authentication & Authorization
+### 5.2 Authentication & Authorization
 
-<!--
-  CUSTOMIZE: Define your auth patterns.
+**Pattern:**
+- All endpoints should have clear authentication and authorization requirements
+- Cookies should be configured with `SecurePolicy=Always`, `HttpOnly=true`, `SameSite` attributes where applicable
+- CSRF protection should be enabled where appropriate
+- Implement resource ownership checks: when a user requests data, verify they have access to that specific resource
 
-  Common rules:
-  - Every controller action must have [Authorize] or explicitly [AllowAnonymous]
-  - Resource ownership checks: verify the requesting user has access to the specific resource
-  - Rate limiting on auth endpoints and public APIs
-  - Cookies: SecurePolicy=Always, HttpOnly=true, SameSite attributes
--->
+**Rules for API projects:**
+- Every controller action must have an `[Authorize]` attribute or the controller itself must. Anonymous endpoints must be explicitly marked as such with a code comment explaining why.
+- Rate limiting should be applied on authentication endpoints and public-facing APIs
+- Resource ownership checks should verify that the requesting user has access to the requested resource
 
----
+### 5.3 CORS
 
-## 6. Testing Standards
-
-### Coverage Target
-
-**Minimum 70% code coverage** across all projects.
-
-**Must-test paths (100% coverage required):**
-- Authentication and authorization logic
-- Any code that handles money or financial calculations
-- Data mutation operations (create, update, delete)
-- Input validation logic
-
-### Test Structure
-
-- Unit tests: Mock external dependencies. One test class per source class.
-- Integration tests: Test against a real database. Use `WebApplicationFactory<T>` for API tests.
-- Test isolation: No dependency on external services, execution order, or shared mutable state.
-- Test naming: `{MethodName}_{Scenario}_{ExpectedResult}`
-
-**InMemory database key conflicts:** When using in-memory databases for testing, auto-increment counters can collide across test methods. Fix: assign explicit IDs on all seeded entities using non-overlapping ranges per test class or fixture.
-
-**Transitive dependency awareness:** Before adding a project reference from one test project to another for shared fixtures, check the transitive package dependencies. If the referenced test project pulls in large packages, inline the shared helper instead.
-
-**Static field contamination between test classes:** Static fields (dictionaries, lists, counters) persist across test class instantiations within a single test run. If one test class populates a static collection and another test class asserts on its count, the tests pass in isolation but fail when run together. Fix: clear static state in the test class constructor so every class starts clean.
-
-```csharp
-// Pattern: clear static state in constructor
-public class YourServiceTests
-{
-    public YourServiceTests()
-    {
-        // Reset any static collections that tests depend on
-        StaticClass.SharedCollection.Clear();
-    }
-}
-```
-
-**Background task queue mocking:** When testing code that calls `IBackgroundTaskQueue.QueueBackgroundWorkItemAsync()`, the queued lambda is never executed in tests because Moq returns a completed `ValueTask` without running the delegate. Test that the queue was called (the scheduling decision), not the side effects of the lambda.
-
-```csharp
-// Good: verify queuing happened
-_mockTaskQueue.Verify(
-    q => q.QueueBackgroundWorkItemAsync(It.IsAny<Func<CancellationToken, ValueTask>>()),
-    Times.Once);
-
-// Bad: asserting side effects that only happen when the lambda runs
-// The lambda never executes in unit tests — Moq returns completed ValueTask
-```
-
-### 6.6 Test Impact Analysis (Before Pushing Production Changes)
-
-When production code changes alter method signatures (return types, parameters), class constructors, or remove/rename public methods, every test file that references those classes will break. **Before pushing production changes, grep the test directory for every changed class name and fix all test files in the same commit.** One pass, not iterative CI discovery.
-
-```bash
-# After changing [YOUR-SERVICE] constructor from 5 to 4 params:
-grep -rn "[YOUR-SERVICE]" Tests/
-# Fix EVERY file that appears — not just the one you remember
-```
-
-**What counts as a signature change that requires this sweep:**
-- Constructor parameter added, removed, or reordered
-- Method return type changed
-- Method removed or renamed
-- Method parameter list changed
-- Access modifier changed (public → private/internal)
-
-**Phase planning implication:** When building implementation plans that modify existing code with existing tests, include a "Test Impact" line item for every wave that changes production signatures. Do not defer test fixes to a later wave — they ship with the production change that breaks them.
-
-### 6.7 Non-Virtual Third-Party Method Testing
-
-Some third-party or kernel library methods are non-virtual and cannot be intercepted by Moq. When a Loose mock executes the real non-virtual method, it typically throws `NullReferenceException` because the mock's internal state is null. `MockBehavior.Strict` throws `NotSupportedException` on any unsetup call.
-
-**Test patterns for code that calls non-virtual methods:**
-
-1. **Verify the pipeline stopped before the call:** Set up conditions so the code path returns before reaching the non-virtual method. Verify the upstream repository calls happened.
-
-2. **Assert the expected exception:** When testing the "happy path" that reaches the non-virtual call, assert that `NullReferenceException` is thrown. This proves the pipeline executed through all mockable steps and reached the send step. Verify upstream calls in addition to the exception.
-
-```csharp
-// Pattern: assert exception proves pipeline completed
-Func<Task> act = () => _service.[YOUR-METHOD]();
-await act.Should().ThrowAsync<NullReferenceException>();
-_mockRepository.Verify(r => r.[YOUR-UPSTREAM-CALL](), Times.Once);
-```
-
-3. **Do not attempt to Setup or Verify the non-virtual method.** Moq will throw `NotSupportedException` regardless of `MockBehavior`.
-
-### 6.8 Grep-Before-Push Rule
-
-Any time a commit changes a public API surface (constructor, method signature, return type, class rename), run a grep across the entire repo for the affected class/method names before pushing. This catches cascading breaks in test files, DI registrations, and other consumers in one pass rather than through iterative CI failures.
-
-This applies to both the VM workflow (grep locally) and the CI-first workflow (grep before commit). It is faster to spend 30 seconds grepping than to wait for a CI run to surface the same error.
-
-### 6.9 API Contract Tests (External API Wrappers)
-
-When a service wraps an external API, unit tests must verify the shape of the outgoing HTTP request, not just that a call was made. Assert on the URL path, query parameters, HTTP method, and request body structure in the mock handler.
-
-A mock that only confirms "an HTTP call happened" will pass even when the wrong parameter is sent. The bug only surfaces in integration tests or production. Contract tests that assert on request shape catch these mismatches immediately.
-
-**What to assert:**
-- Correct HTTP method (GET vs POST vs PUT)
-- Correct URL path and query parameters
-- Correct request body structure and field names
-- Correct parameter values (especially when the service maps between internal names and API-expected names)
-
-### 6.10 Dry Run Mode for External Endpoint Integration
-
-When a feature calls external APIs that modify data, the feature must support a **Dry Run mode** that lets the team validate the full pipeline without executing write operations against production or sandbox systems.
-
-**Why this matters:** Most external services have no sandbox environment or limited sandbox parity. Testing against live endpoints risks creating bad records or moving real data. A dry-run capability lets the team validate rule evaluation, data extraction, and pipeline sequencing without side effects.
-
-**Implementation pattern:**
-
-1. **Config-level toggle.** Add a `RunMode` field (enum: `Live`, `DryRun`) to the feature's primary configuration entity. This is a persistent setting, not a one-time flag.
-2. **Read/write boundary.** Every external integration already has a natural split between read operations (search, fetch, list) and write operations (create, update, move, delete). Read operations run identically in both modes. Write operations are gated by RunMode.
-3. **Structured simulation logging.** In DryRun mode, each skipped write operation produces a structured log entry describing what *would* have happened, including the target system, the operation, and the payload.
-4. **Results still persist.** DryRun results write to the same data store with an `IsDryRun = true` flag. This lets dashboards and activity logs display dry-run results with distinct visual treatment.
-5. **One-shot test button.** The UI provides a "Test Run Now" button that triggers a single pipeline execution in DryRun mode regardless of the saved RunMode.
-6. **Unit test coverage.** Tests must verify that DryRun mode (a) executes all read-only steps, (b) skips all write operations, (c) produces simulation descriptions, and (d) persists results with IsDryRun = true.
-
-### 6.11 Reflection-Based Function Entry Point Testing
-
-<!-- CUSTOMIZE: If your project uses Azure Functions, AWS Lambda, or similar serverless entry points, use this pattern. Remove if not applicable. -->
-
-Serverless entry points (Azure Functions, Lambda handlers) are thin orchestration layers. The service logic is tested in service-layer unit tests. But the entry points have metadata that matters: route patterns, HTTP methods, authorization levels, trigger attributes. Bugs in these surface as 404s or auth failures in production.
-
-**The reflection-based alternative:** Test the function's metadata through reflection instead of executing its logic. This verifies the contract without needing mocks for the full dependency tree.
-
-**What reflection tests verify:**
-- Function exists with the expected name
-- Route pattern matches the expected path
-- HTTP methods are correct
-- Authorization level is correct
-- Required parameters are present
-- Return type matches expectations
-
-**When to use:** For serverless entry points where the service layer is already tested. This is not a replacement for service-layer tests; it validates the deployment surface.
-
-### 6.12 Untestable Production Code Protocol
-
-When writing tests for existing production code, you'll sometimes hit methods that can't be mocked: non-virtual methods on concrete classes, sealed classes, services that create concrete dependencies internally, or static method calls.
-
-**Don't skip the test. Don't rewrite the production code on a whim.** Follow this protocol:
-
-1. **Try a workaround first.** Use a real instance with mocked sub-dependencies.
-2. **If the workaround fails and the fix is small,** create a minimal refactor: extract an interface, make a method virtual, or inject the dependency.
-3. **If the refactor is non-trivial,** stop and flag it. Document the limitation in the test plan and create a separate work item.
-4. **For reflection tests,** the untestability constraint doesn't apply because they don't execute production code.
-
-### 6.10 Background Task Queue Testing
-
-When production code queues work via fire-and-forget patterns (e.g., `IBackgroundTaskQueue`), mocking libraries return a completed task without executing the passed lambda. The lambda's side effects never run during tests.
-
-**Don't assert on the lambda's side effects.** Instead, verify that:
-1. The queuing method was called (proves the work was queued)
-2. The initial state was set correctly before queuing
-3. If the service returns a result, the result reflects the pre-queue state
-
-**If you need to test the lambda's logic,** extract it into a separate testable method and test that method directly.
-
-### 6.11 Grep-Before-Push for Signature Changes
-
-When a method signature changes (constructor params added/removed, return type changed, method renamed), test files referencing that method will break. CI will catch this, but you can save a round-trip by grepping first.
-
-**Before pushing any signature change:**
-
-```bash
-# Find all test references to the changed class/method
-grep -r "ClassName" Tests/ --include="*.cs" -l
-# Or for constructor changes specifically
-grep -r "new ClassName(" Tests/ --include="*.cs" -l
-```
-
-Update every file in the results before committing. Constructor changes can affect multiple test files — a single grep catches all of them in one pass.
-
----
+- Development environments can be permissive, but production must specify exact allowed origins
+- Never combine open origin allowance with credential allowance
 
 ---
 
 ## 7. API Design Standards
 
-<!--
-  CUSTOMIZE: Define your REST API conventions if applicable.
+### 7.1 Route Design
 
-  Common rules:
-  - Routes: noun-based, kebab-case (`/api/users/{id}/gym-access`)
-  - HTTP methods for verbs (GET=read, POST=create, PUT=update, DELETE=remove)
-  - Validate all incoming DTOs (FluentValidation or DataAnnotations)
-  - Consistent response wrappers with correlation IDs
-  - Version APIs from the start (`/api/v1/...`)
--->
+**Standard:**
+- Routes should be resource-oriented and use consistent naming (usually plural for collections)
+- Use HTTP methods for verbs: GET (read), POST (create), PUT (full update), PATCH (partial update), DELETE (remove)
+- Collection endpoints: `/api/resources`
+- Single-resource endpoints: `/api/resources/{id}`
+- Sub-resource endpoints: `/api/resources/{id}/sub-resources`
+
+### 7.2 Request Validation
+
+- Validate all incoming request models
+- Return proper HTTP status codes for validation failures (400 Bad Request, not 200 with error in body)
+- Validate at the API boundary; services should assume valid input
+
+### 7.3 Response Patterns
+
+- Use consistent response wrappers across your API
+- Return proper HTTP status codes: 200 (success), 201 (created), 204 (no content), 400 (bad request), 401 (unauthorized), 403 (forbidden), 404 (not found), 500 (server error)
+- Include a correlation ID in error responses for debugging
+- Never return stack traces in production responses
+
+### 7.4 API Documentation
+
+- Use XML doc comments on all controller actions to feed documentation generation
+- Include example request/response payloads for complex endpoints
+- Version APIs from the start (`/api/v1/...`) to prevent breaking changes later
 
 ### 7.5 Controller Routing: Match Existing Convention First
 
-Before applying any routing convention to a new controller, check what the existing controllers in the project actually use. If the codebase uses `[Route("[controller]")]` consistently, use that. If it uses explicit versioned routes (`/api/v1/{resource}`), use that. Do not apply a generic best practice that contradicts the project's established pattern.
+Before applying a new routing convention, check what the existing codebase does. If the codebase uses one pattern consistently, use that pattern. Do not introduce inconsistency just to follow a generic best practice.
 
-**Process:** When adding a new controller, `grep` for `[Route(` across existing controllers. Use the dominant pattern. If you believe the project should adopt a different convention, flag it as a separate refactor decision in the scoping doc; don't mix a convention change into a feature branch.
+**Process:** Check existing controllers to find the dominant pattern. Use that pattern. If you believe the project should adopt a different convention, flag it as a separate refactor decision in the scope doc; don't mix convention changes into feature branches.
 
 ---
 
-## 8. CI/CD Standards
+## 9. CI/CD Standards
 
-<!--
-  CUSTOMIZE: Define your build/deploy pipeline requirements.
+For GitHub Actions implementation details, see `github-actions-bp.md`. This section covers the high-level standards.
 
-  Common requirements:
-  1. Build with warnings-as-errors
-  2. Run tests with coverage collection; fail if below threshold
-  3. Security scan for vulnerable dependencies
-  4. Deploy to staging on merge to main; production requires manual approval
+### 9.1 Pipeline Requirements
 
-  Branch strategy:
-  - `main` = production; no direct pushes
-  - Feature branches: `feature/{description}`
-  - PRs require approval and passing checks
--->
+Every push and PR should trigger:
 
-### UI Mockup Conformance — Hard Gate (When Mockups Exist)
+1. **Build:** Compile each project
+2. **Test:** Run test suite with results uploaded as artifacts
+3. **Optional future additions:** Code coverage collection, security scanning
 
-<!-- CUSTOMIZE: Remove this section if your projects don't use HTML mockups for UI validation. Adjust the framework-specific examples (MudBlazor) to match your UI library. -->
+### 9.2 Branch Strategy
 
-When a project has approved HTML mockups (per `coding/project-scoping-bp.md` Section 5), every UI component must pass a three-step gate: Extract → Build → Verify. The component status cannot move to DONE until the verification artifact exists and shows all items passing.
+- Primary development branch contains the latest work-in-progress
+- Main/master branch is production-ready
+- Feature branches: `feat/{short-description}`
+- Bugfix branches: `fix/{short-description}`
+- CI triggers on pushes and PRs to primary branches
 
-**Step A — Extract Component Spec (before writing any code):**
-Open the approved mockup. Produce a Component Spec Checklist — one line per visual element, written in your implementation framework's language (e.g., `MudSelect` not "a dropdown"). Write the checklist into the phase plan before coding starts. If no mockup exists for screens being built, the phase blocks until one is approved.
+### 9.3 Environment Configuration
 
-**Step B — Build:**
-Normal implementation. The checklist from Step A is the spec.
+- Use environment-specific configuration (dev, staging, production) for secrets and endpoints
+- Use OIDC or managed identity for cloud authentication from CI when possible
+- Deployment to cloud services via appropriate actions
 
-**Step C — Verify (after code compiles, before marking DONE):**
-Reopen the mockup. Walk the checklist line by line, marking each ✅ or ❌. Any ❌ means the component is not done. Fix all ❌ items, then re-run the full checklist (not just fixed items). Write the verification output into the phase plan.
+### 9.4 Build Verification: CI-First
 
-<!-- CUSTOMIZE: Replace with your framework's component names -->
-**Example checklist (MudBlazor):**
+The primary verification gate is your CI system, not local builds. CI runs on clean infrastructure with all dependencies correctly installed.
+
+**Workflow:**
+1. Write or modify code
+2. Commit and push to a feature branch
+3. CI builds and tests automatically
+4. Check results with your CI command-line tool
+5. If tests fail, fix locally, push again
+
+**When local builds apply:** Only with explicit permission, and only for projects small enough to build locally. For large multi-project builds, CI is always the gate.
+
+---
+
+## 10. Performance & Reliability
+
+### 10.1 Query Optimization
+
+- Avoid N+1 query patterns (looping and making individual queries instead of batching)
+- Use eager loading when you know you'll need related data
+- Use projections when you only need specific columns
+- Watch for loops containing async I/O calls; each iteration is a round-trip
+
+### 10.2 Resilience
+
+- HTTP calls to external APIs should include retry policies for transient failures
+- Database connections should enable retry-on-transient-failure
+- Background services should handle their own exceptions gracefully
+
+### 10.3 Caching
+
+- Use caching for data that's read frequently and changes rarely (configurations, lookup tables, provider settings)
+- Set explicit cache expiration; never cache indefinitely
+- Monitor cache hit rates in production
+
+---
+
+## 11. Documentation Standards
+
+### 11.1 Repository-Level Documentation
+
+Every code repository should have an `Architecture.md` file at the repo root covering:
+- Repository layout and organization
+- Tech stack
+- Application architecture and request flow
+- Authentication and authorization (if applicable)
+- Data access patterns (if applicable)
+- Configuration and environment variables
+- Error handling approach
+- Known considerations and constraints
+
+This is a living document. Update it when the codebase changes.
+
+### 11.2 README Files
+
+Every project (compilation unit) should have a `README.md` covering:
+- What the project does (one paragraph)
+- How to configure it for local development
+- Environment-specific settings
+- How to run its tests
+- Key architectural decisions
+
+### 11.3 Architecture Decision Records (ADRs)
+
+When a non-obvious technical choice is made, document it:
+
+```markdown
+# ADR-001: [Title]
+
+## Status: Accepted
+## Date: YYYY-MM-DD
+
+## Context
+[Why the decision was needed]
+
+## Decision
+[What was decided]
+
+## Consequences
+[What trade-offs this creates]
 ```
-☐ @layout AppBaseLayout (not standalone container)
-☐ Back-header: MudPaper with MudIconButton(Icon.ArrowBack)
-☐ MudList with MudListItem per record
-☐ FAB: MudFab Color.Primary for create action
-☐ Empty state: MudAlert with call to action
-```
 
-**Mandatory phase plan structure for UI phases:**
-```
-X.1    Extract component spec from mockup — PENDING
-...    (implementation items)
-X.N-1  Verify against mockup — PENDING
-X.N    CI verification — PENDING
-```
+Store ADRs in a `/docs/adr/` folder at the repo root.
 
-This applies to both planned phases and reactive mid-PR phases.
+### 11.4 Inline Documentation
 
-### bUnit Component Testing
-
-<!-- CUSTOMIZE: If your project uses Blazor with MudBlazor or similar component libraries, use this pattern. Adjust the fixture setup for your specific library. -->
-
-For Blazor component tests, use bUnit. A single shared UI test project is preferred over one per bounded context.
-
-**Fixture requirements:**
-- `bUnit.TestContext` with your UI library's providers registered
-- Mock service layer per context
-- Loose JS interop mode for components that call JavaScript
-
-**What bUnit tests verify:**
-- Component renders without throwing given valid, empty, and error service responses
-- Interactive elements trigger the right service calls
-- Conditional rendering works (loading, empty, error states)
-- Form validation messages appear for bad input
-- Navigation redirects correctly after operations
-
-**What bUnit tests do NOT verify:**
-- Visual appearance (CSS, layout). That's manual or screenshot-based testing.
-- Component library internals. Trust the library; test your usage of it.
-
-<!-- CUSTOMIZE: Add a subsection here for any framework-version-specific migration gotchas
-     your team has encountered. Example: .NET 10 changed JsonContent.Create() to default
-     to camelCase serialization (JsonSerializerOptions.Web), breaking external API calls
-     that expect PascalCase. Document the fix pattern and when to audit for it. -->
-
-### 8.3 Page Header / Navigation Bar Consistency
-
-Before building a page header (back button bar, title bar, app bar), check what the existing pages in the same feature area use. The goal is visual and structural consistency across the app.
-
-**How to check:** Open 2-3 sibling pages in the same area. Look for which UI library component they use for the top bar: the app bar component, a panel/paper with a theme class, or a toolbar. Use the same one.
-
-**When building a list/index page:** Use the standard layout wrapper (which provides the app navigation chrome). The page gets the standard app chrome automatically. Do not build a custom app bar for pages that are part of the normal navigation flow.
-
-**When building a detail/immersive page** (e.g., a detail view or modal): A custom back-header bar is appropriate. Use the component that sibling detail pages use.
-
-**Lesson learned:** Inconsistent header bars across similar pages create visual confusion and require rework. A 30-second check of sibling pages prevents it.
-
-### 8.4 Dialog and Form Validation Checklist
-
-Every dialog that accepts user input must include:
-
-1. **Required field validation**: Mark every field that can't be blank, with clear validation error messages.
-2. **Form validity tracking**: Bind the form's validity state so you can gate actions based on it.
-3. **Submit button gating**: Disable the submit button when the form is invalid or an operation is in progress. Never allow submitting an invalid form.
-4. **Loading state**: Show a loading indicator on the submit button and disable both Submit and Cancel while the operation runs.
-5. **Validation functions**: Custom validators (email format, phone format, numeric ranges, etc.) for fields that require business logic beyond required/not-required.
-
-**Example pattern:**
-```
-Form validity state tracked: isValid = true/false
-Submit button Disabled="@(!isValid || isLoading)"
-Cancel button Disabled="@isLoading"
-Loading spinner shown when isLoading == true
-```
-
-### 8.5 SharedComponents Layer Check
-
-Before committing any new UI page, ask: **"Will another platform eventually need the same UI?"**
-
-If yes — or even if it's likely — the UI belongs in SharedComponents (or your equivalent shared layer) as a self-contained component. The page becomes a thin routing shell. Building it as a page-only component forces other platforms to duplicate that work later, which is exactly what a shared component layer exists to prevent.
-
-**Self-contained means:** The SharedComponent injects all its own services and owns all UI — including headers, loading state, empty state, and action buttons. Nothing is passed via parameters that the component could resolve itself via DI.
-
-**Applies to all page modifications, not just new pages.** If you are adding content to an existing page that exists across multiple platforms (e.g., adding a new card to a dashboard), check whether the page has already been extracted to SharedComponents. If both platform copies exist with duplicated logic, extract to SharedComponents as part of the change. Do not add the content to both platform copies independently.
+- Comment *why*, not *what*. The code shows what; comments explain why.
+- XML doc comments on all public methods in business logic projects
+- TODO/HACK/FIXME comments must have a corresponding tracked work item
+- Magic numbers must be replaced with named constants or explained in comments
 
 ---
 
-## 9. Performance & Reliability
+## 12. Current Gaps
 
-- Batch database calls — no N+1 query patterns (loops with `await` calls)
-- Use HTTP client retry policies (Polly or built-in) for external API calls
-- Background services must handle their own exceptions
-- Use caching for frequently-read, rarely-changed data with explicit expiration
-
-### 9.4 Build Verification: CI-First, Not Local-First
-
-**The primary verification gate is your CI/CD system, not local builds.** If your build system is resource-constrained or requires specific SDK versions, use CI as the primary gate. Rather than fighting those constraints, the standard workflow is:
-
-1. Write or modify code locally.
-2. Commit and push to a `feat/*` branch.
-3. CI/CD pipeline builds and tests automatically.
-4. Check results from the CI system.
-5. If tests fail, fix locally, push again.
-
-**When local builds still apply:** If your environment has the correct toolchain installed and the project is small enough to build locally (e.g., a Node.js project, a Python script, a small web app), a local build before commit is still valuable. For large compiled projects with many dependencies, CI is the gate.
-
-**Pre-push checklist:**
-- Code compiles conceptually (no obvious syntax issues, imports are correct, interfaces match)
-- New test files follow the naming and structure conventions in Section 6
-- **Grep-before-push completed** (Section 6.8) — if any public signatures changed, all test files referencing those classes are fixed in this commit
-- Commit message describes the change clearly
-- If the push includes workflow file changes (`.github/workflows/`, CI YAML, etc.), confirm credentials and permissions are correct
-
-**CI-first means CI-only.** Do not fall back to local builds to diagnose failures when CI is available. Push to CI, read the results from the CI system, fix, push again. The CI log is the source of truth.
-
-#### 9.4.1 Compile-Run-Fix Loop (Multi-Project Phases)
-
-When a phase involves multiple test projects or multiple classes within a test project, the simple pre-push sequence above expands into an iterative gate loop. This is the per-project mechanics; for orchestration across a phased delivery plan, see `coding/project-scoping-bp.md` Section 8c.
-
-**Per-project gate loop:**
-
-1. **Write all test classes** for the project before compiling.
-2. **Compile gate:** Build the test project. Fix every compiler error and warning.
-3. **Run gate:** Run the full test project. Every test must pass.
-4. **Fix loop:** If a test fails, read the failure output, diagnose, fix, and re-run.
-5. **Commit** once the full project compiles and all tests pass.
-
-**Gate failure protocol:**
-
-If fixing a test failure requires changing production code (not just test code):
-- **Bug the test exposed:** Fix the production code, commit separately with a clear message, note the bug in the plan.
-- **Interface changed since the plan was written:** Update the test to match the current interface, note the deviation in the plan.
-- **Code is untestable as-is:** See Section 6.12 for the untestable production code protocol.
-
-#### 9.4.2 Phase-by-Phase CI Verification
-
-When modifying existing code that already has tests (as opposed to writing net-new code), push production changes and their corresponding test updates together, then wait for CI to pass before moving to the next phase. Do not batch all phases into a single push.
-
-**Why:** Batching works when everything is net-new (no existing tests to break). But when existing tests depend on the production code being changed, failures compound across phases and become harder to isolate.
-
-**The rule:**
-1. Complete production changes for one phase/wave.
-2. Run the grep-before-push sweep (Section 6.8) to find and fix all impacted test files.
-3. Commit production changes + test fixes together.
-4. Push. Wait for CI to pass.
-5. Move to the next phase.
-
-**Exception:** If the phases are independent (different files, different test classes, no shared signatures), batching is acceptable. Use judgment — if a Phase 2 change could break a Phase 1 test, they must be sequential.
+Document known gaps or areas for improvement discovered during code review. Include:
+- Issue number or description
+- Severity level
+- File reference
+- Status (open, in progress, resolved)
 
 ---
 
-## 10. Known Gaps — Tracked Issues
+## 13. What Good Looks Like
 
-<!--
-  CUSTOMIZE: Track known issues in your codebase here.
-  Review this section during code reviews and sprint planning.
+Not everything needs fixing. Document patterns that are working well and should be maintained:
 
-  Example:
-  | # | Issue | Severity | File Reference |
-  |---|---|---|---|
-  | 1 | Silent exception swallowing in [service] | High | `path/to/file.cs` |
-  | 2 | No unit tests for [feature] | Medium | `path/to/tests/` |
-  | 3 | Hardcoded secrets in config | Critical | `appsettings.json` |
--->
+- Effective DI registration patterns
+- Well-structured service layers
+- Good error handling approaches
+- Clean repository patterns
+- Well-documented API contracts
 
 ---
 
-## 11. Patterns to Preserve
+*Read `coding-index.md` to find the right standards file for your task. For security-specific guidance, see `security/security-practices.md`. For documentation formatting, see `writing/best-practices-creation.md`.*
 
-<!--
-  CUSTOMIZE: Document patterns that are already working well.
-  Reference these during code reviews to maintain consistency.
-
-  Example:
-  - BaseService abstract class with centralized logging
-  - DI registration via extension methods
-  - Result wrapper pattern for service returns
-  - Fluent API entity configurations in dedicated files
--->
-
----
-
-## 14. Verification Agent Protocol
-
-When writing or modifying code, Claude can spin up independent sub-agents to review the work before marking it done. The protocol is complexity-gated — small changes don't need it, large changes require it.
-
-### 14.1 Complexity Tiers
-
-| Tier | Scope | Agent Strategy |
-|------|-------|----------------|
-| **Tier 1 — Small** | Single file, <50 lines changed, no UI | No verification agent needed. |
-| **Tier 2 — Medium** | Multiple files, new service methods, or any UI work | One verification agent after coding is complete. |
-| **Tier 3 — Large** | New feature, multi-phase, touches external APIs or database schema | Two verification agents in parallel after each phase milestone. |
-
-When in doubt, round up — a Tier 2 review on a borderline-Tier-1 change costs seconds; missing a real issue costs a correction phase.
-
-### 14.2 What Each Agent Checks
-
-**Code Review Agent (Tier 2 and Tier 3):** Receives the diff plus this best practices file. Checks layer references, DI patterns, secrets management, async usage, explicit typing, braces, XML docs, and exception handling. Any failure blocks the task from being marked done.
-
-**UI Conformance Agent (Tier 2+ with UI):** Only runs when an approved mockup exists. Walks the component spec checklist line by line against the implemented markup. Any mismatch blocks the task.
-
-**External API Agent (Tier 3 only):** Only runs when the change touches external APIs. Checks retry policies, no hardcoded credentials, and proper error surfacing.
-
-### 14.3 When Agents Run
-
-Agents run after coding is complete but before the task or phase is marked done. They do not replace CI — CI validates compilation and tests. Verification agents validate pattern compliance that CI can't check (mockup fidelity, architecture rules, naming conventions).
-
-**Sequence:** Code → verification agents → fix failures → push to feature branch → CI → mark done.
-
-### 14.4 Agent Isolation
-
-Verification agents run with `isolation: "worktree"` when possible, giving them a clean copy of the repository separate from the working tree.
-
----
-
-## 12. Verification Agent Protocol
-
-When Claude is writing or modifying code, it can spin up independent sub-agents to review the work before marking it done. This catches pattern violations, UI conformance issues, and architectural drift that would otherwise surface in human code review. The protocol is complexity-gated — small changes don't need it, large changes require it.
-
-### 12.1 Complexity Tiers
-
-| Tier | Scope | Agent Strategy |
-|------|-------|----------------|
-| **Tier 1 — Small** | Single file, <50 lines changed, no UI | No verification agent. Review is built into the primary coding pass. |
-| **Tier 2 — Medium** | Multiple files, new service methods, or any UI work | One verification agent after coding is complete. |
-| **Tier 3 — Large** | New feature, multi-phase, touches external APIs or database schema | Two verification agents in parallel after each phase milestone. |
-
-**How to determine the tier:** The scope is known from the phase plan before any code is written. If there's no phase plan, use the file count and change size to classify. When in doubt, round up.
-
-### 12.2 What Each Agent Checks
-
-**Code Review Agent (Tier 2 and Tier 3):**
-
-<!--
-  CUSTOMIZE: List the specific rules from your coding standards that the
-  code review agent should check. Reference section numbers from this file.
-  Example checklist items:
-  - Layer reference direction (no upward refs)
-  - DI registration pattern
-  - Result wrapper pattern on service methods
-  - No .Result or .Wait() on Tasks
-  - Braces on all control flow
-  - XML docs on public methods
-  - No PII in log statements
-  - AsNoTracking() on read-only queries
-  - CancellationToken on async methods
--->
-
-The agent receives the diff plus this best practices file and checks against your documented rules. It produces a pass/fail list. Any failure blocks the task from being marked done.
-
-**UI Conformance Agent (Tier 2 with UI, Tier 3 with UI):**
-
-Only runs when the change involves UI components and an approved mockup exists. Executes the mockup conformance gate:
-
-- Opens the mockup file
-- Walks the component spec checklist line by line against the implemented markup
-- Produces pass/fail output for each checklist item
-
-<!--
-  CUSTOMIZE: Reference your UI standards section and any framework-specific
-  checklists (e.g., new routable page checklist, component checklist).
--->
-
-Any failure blocks the task from being marked done.
-
-**External API Agent (Tier 3 only, when applicable):**
-
-Only runs when the change touches external APIs. Checks:
-
-- Dry Run mode implementation if no sandbox exists
-- Retry policies on HTTP clients
-- No hardcoded credentials
-- Error handling on API responses
-
-### 12.3 When Agents Run
-
-Agents run **after coding is complete but before the task or phase is marked done.** They do not replace CI — CI validates compilation and test execution. Verification agents validate pattern compliance and conformance to standards that CI can't check.
-
-**Sequence:**
-1. Code the change
-2. Run verification agent(s) based on tier
-3. Fix any failures surfaced by agents
-4. Push to feature branch (triggers CI)
-5. CI validates compilation and tests
-6. Mark phase/task done only after both agent review and CI pass
-
-### 12.4 Agent Isolation
-
-Verification agents run with worktree isolation when possible, giving them a clean copy of the repository. This prevents the reviewing agent from being influenced by uncommitted scratch work or partial changes in the working tree.
-
----
-
-*Read this file before writing, reviewing, or modifying any code. For security guidance, see `security/security-practices.md`. For documentation formatting, see `writing/best-practices-creation.md`.*
-*Last updated: 2026-03-17 — Added Section 12 (Verification Agent Protocol): complexity-tiered sub-agent review for code, UI conformance, and external API compliance.*
-
+*Last Updated: [DATE]  -  Graph split: extracted sections on architecture, quality, config, database, testing, Blazor UI, and verification into standalone files. This file retains sections on security, API design, CI/CD, performance, documentation, gaps, and good patterns.*
 
 ---
 
 ## Corrections Log
 
-*Tracks issues found when following this file's instructions. Entries are added when a discrepancy is discovered and a fix is applied or proposed.*
+*Tracks issues found when following this file's instructions.*
 
-| Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
-|------|-------------|------------|-------------|---------------|
+| Date | What Failed | Root Cause | Fix Applied |
+|------|-------------|------------|-------------|
 
-**Notes:**
-<!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->
-*Last updated: 2026-03-31 — Added Sections 6.10, 6.11, and 14 (Verification Agent Protocol).*
