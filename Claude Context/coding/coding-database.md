@@ -1,149 +1,166 @@
+---
+type: context-file
+parent: "`coding-index.md`"
+summary: "DbContext lifecycle (IDbContextFactory), [YourProject] base class pattern, schema organization, stored procedures, SSDT-first workflow, temporal table config, entity configuration checklist, and database-defaulted value rules."
+tags: [coding, database, ef-core, ssdt, entity-config]
+---
+
 # Database & EF Core Standards
 
-> **Part of the Coding Standards Graph.** This file covers DbContext lifecycle, repository patterns, entity configuration, and schema management. For the full standards index, see `coding-index.md`.
+> **Part of the the Coding Standards Graph (`coding-index.md`).** This file covers all database and Entity Framework Core patterns. For the full standards index, see `coding-index.md`.
 
-## 4.1 DbContext Lifecycle and Factory Pattern
+## 4.1 DbContext Lifecycle
 
-**Never inject DbContext directly into services or repositories.** Use `IDbContextFactory<T>` to create new instances per operation. This prevents context lifetime issues, entity tracking contamination across operations, and connection pool exhaustion.
-
-```csharp
-public class UserService
-{
-    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-
-    public UserService(IDbContextFactory<ApplicationDbContext> contextFactory)
-    {
-        _contextFactory = contextFactory;
-    }
-
-    public async Task<UserDto> GetUserAsync(int userId, CancellationToken ct)
-    {
-        await using var context = await _contextFactory.CreateDbContextAsync(ct);
-        var user = await context.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
-        return user?.ToDto();
-    }
-}
-```
-
-**Rule:** Every data access operation creates a fresh DbContext, executes the query, and disposes it. This prevents context state bleeding between operations and reduces memory pressure.
-
-## 4.2 Repository Base Class Pattern
-
-<!-- CUSTOMIZE: Define your repository base class architecture. Example:
+**Correct pattern (TIPS does this):** Use `IDbContextFactory<T>` and create contexts per operation:
 
 ```csharp
-public abstract class EFCoreRepository<TEntity> where TEntity : class
-{
-    protected readonly IDbContextFactory<ApplicationDbContext> ContextFactory;
-
-    protected EFCoreRepository(IDbContextFactory<ApplicationDbContext> contextFactory)
-    {
-        ContextFactory = contextFactory;
-    }
-
-    public virtual async Task<TEntity?> GetByIdAsync(int id, CancellationToken ct)
-    {
-        await using var context = await ContextFactory.CreateDbContextAsync(ct);
-        return await context.Set<TEntity>().FindAsync(new object[] { id }, cancellationToken: ct);
-    }
-
-    public virtual async Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken ct)
-    {
-        await using var context = await ContextFactory.CreateDbContextAsync(ct);
-        return await context.Set<TEntity>().ToListAsync(ct);
-    }
-}
+services.AddDbContextFactory<[YourDbContext]>(options =>
+    options.UseSqlServer(connectionString, sqlOptions =>
+        sqlOptions.EnableRetryOnTransientFailure()));
 ```
 
-Concrete repositories extend the base class and add entity-specific queries.
--->
-
-## 4.3 Schema Organization
-
-<!-- CUSTOMIZE: Document your schema structure. Example:
-
-```sql
--- User management
-CREATE SCHEMA [auth]
-  -- Users, Roles, Permissions tables
-
--- Product catalog
-CREATE SCHEMA [product]
-  -- Products, Categories, Inventory tables
-
--- Transactional data
-CREATE SCHEMA [transaction]
-  -- Orders, Payments, Fulfillment tables
-```
-
-Use the schema to organize the logical domains of your database. This prevents table name collisions and makes the schema self-documenting.
--->
+**Incorrect pattern (HAF has this bug):** Creating a DbContext in the repository constructor without disposal. This leads to stale entity tracking, resource leaks, and concurrency issues.
 
 **Rules:**
-- One schema per bounded context or major domain.
-- Use lowercase, simple names for schemas (e.g., `auth`, `product`, `order`).
-- In EF Core, map entities to schemas: `builder.ToTable("Users", schema: "auth")`.
+- Use `IDbContextFactory<T>` for all service and repository classes. Create contexts with `using` blocks scoped to the operation.
+- Configure retry logic on transient failures (`EnableRetryOnTransientFailure()` for SQL Server).
+- Use `AsNoTracking()` on all read-only queries. This matters for performance and prevents accidental mutations.
+- **One `SaveChangesAsync` per DbContext instance.** Each context handles one logical unit of work. Don't call `SaveChangesAsync` multiple times on the same context instance. For multi-step writes that need separate transactional boundaries, create a new context instance from `IDbContextFactory<T>` for each step.
+- **Query projections, dual-path rule:**
+  - **CRUD repositories** (those that support both reads and writes) must return entity objects, not projected DTOs. This preserves change tracking so the calling service can decide whether to track, modify, or detach the entity.
+  - **Read-only query methods** (explicitly marked with `AsNoTracking()` and documented as read-only) may use `.Select()` projections for performance when loading full entities would pull unnecessary columns. These methods should be clearly named (e.g., `GetThreadSummariesAsync`) so developers know they return non-tracked results.
 
-## 4.4 Stored Procedures
+### 4.1.1 [YourProject] Base Class Pattern (Mandatory for HAF)
 
-Stored procedures should be used sparingly and only when there's a performance reason (e.g., bulk operations, complex multi-table updates that would be inefficient in C#).
+All new [YourProject] repositories must inherit from `[YourBaseRepository]<TIdType, TEntity, TFilter, TDbContext>` in `[YourSharedLib]/Services/Repositories/`. All new [YourProject] services must inherit from `[YourBaseCrudService]<TIdType, TEntity, TListModel, TSingleModel, TFilter>` in `[YourSharedLib]/Services/Services/`.
 
-<!-- CUSTOMIZE: Document when your team uses stored procedures. Example:
+**What the base classes provide:**
+- `[YourBaseRepository]` — `GetById` (with tracked/untracked toggle), `Search` (paginated), `Add`, `SaveChanges`, `ExportSearch` (raw IQueryable). Subclasses implement `ApplyIdFilter` and `ApplyFilter`, and optionally override `AddIncludesForSearch` / `AddIncludesForGetById` for eager loading.
+- `[YourBaseCrudService]` — `GetList` (paginated), `GetSingle`, `Create`, `Update` with permission checks. Subclasses implement four abstract conversion methods: `ConvertEntityToListModel`, `ConvertEntityToSingleModel`, `ConvertSingleModelToEntityForCreate`, `UpdateEntityFromSingleModel`. This is where entity↔DTO mapping lives.
 
-We use stored procedures only for:
-1. Bulk insert/update/delete operations that process tens of thousands of rows
-2. Complex financial calculations that must be atomic across multiple tables
-3. Reporting queries that aggregate data from many tables with specific performance requirements
+**Rules:**
+- Don't bypass the base class to create standalone repository or service implementations unless the feature's access pattern genuinely doesn't fit CRUD (e.g., a pure event processor or a background job coordinator). Document the reason if you diverge.
+- Domain-specific query methods (e.g., `GetAllThreadsForUserAsync`) are added as extra methods on the concrete repository subclass, not crammed into the base class filter mechanism.
+- Use the existing `PaginatedResult<T>` return type from the base repository for all list endpoints. Don't create custom pagination wrappers.
 
-For normal CRUD and business logic, use EF Core. Stored procedures add maintenance overhead and reduce visibility.
--->
+## 4.2 Schema Organization
 
-## 4.5 Entity Configuration Checklist
+Both projects organize entities into database schemas ([scYourBoundedContext], [scYourBoundedContext], [scYourBoundedContext], [scYourBoundedContext], etc.). Continue this pattern:
+- Each bounded context gets its own schema.
+- Entity configurations use Fluent API in dedicated `{Entity}Configuration.cs` files inside a `Context/Configurations/` folder (HAF pattern) or via `OnModelCreating` partials.
 
-When creating a new entity, run through this checklist:
+## 4.3 Stored Procedures & Raw SQL
 
-- [ ] Entity has a primary key property (usually `int Id`)
-- [ ] All navigation properties are virtual (for EF Core lazy loading)
-- [ ] All collection properties are initialized: `public List<Child> Children { get; set; } = new();`
-- [ ] EF Core Fluent API configuration exists in a `{Entity}Configuration` class
-- [ ] Configuration class sets up the schema, table name, and all key relationships
-- [ ] Configuration applies any indexes needed for filtering or sorting
-- [ ] Entity includes created/modified audit columns if needed
-- [ ] Soft delete column exists if this entity is ever needed for audit/compliance
-- [ ] Comments on the entity class document its purpose and relationships
-- [ ] Entity is registered in DbContext's `OnModelCreating`: `modelBuilder.ApplyConfiguration(new UserConfiguration())`
+- Stored procedures are acceptable for complex batch operations or performance-critical queries. Both projects use them.
+- All stored procedure parameters must be created via `SqlParameter` objects (already done correctly in both projects). Never concatenate user input into SQL strings.
+- Wrap stored procedure calls in auto-generated interfaces (`I[YourDbContext]Procedures`, `IIntegrateContextProcedures`) so they can be mocked in tests.
 
-## 4.6 Temporal Tables and Audit Trails
+## 4.4 Schema Management: SSDT-First (TIPS Standard)
 
-<!-- CUSTOMIZE: Document your audit/temporal table strategy. Example:
+TIPS uses SQL Server Data Tools (SSDT) as the single source of truth for database schema. EF Core does not own the schema. This pattern was formalized during the SNOUT migration after an initial attempt with hand-written EF migrations proved error-prone and created drift between the SQL schema and the C# entities.
 
-**EF Core 9+ support:** Modern EF Core can track temporal tables as shadow properties. When an entity needs automatic history:
+**The workflow:**
 
-1. Add temporal table configuration in the Fluent API: `.HasAnnotation("SqlServer:IsTemporal", true).HasAnnotation("SqlServer:TemporalHistoryTableName", "UserHistory")`
-2. EF Core automatically tracks `ValidFrom` and `ValidTo` shadow properties
-3. Query at a point in time: `.TemporalAsOf(someDateTime)`
+1. **Define schema in SSDT.** All tables, sequences, constraints, indexes, temporal tables, and seed data live as `.sql` files in the `[YourApp].Database.Schema` project. Follow existing conventions: sequence-based INT PKs (start at 1000000), `Uid` (UNIQUEIDENTIFIER) columns, audit columns (`ModifyUser`/`ModifyDate`/`CreateUser`/`CreateDate`), system versioning with `*Hist` temporal tables, named constraints (`DF_`/`PK_`/`FK_` prefixes), and extended properties.
+2. **Publish the SSDT project** to the target database (SSDT Publish profile, not `dotnet ef database update`).
+3. **Reverse-engineer entities with EF Core Power Tools.** After the schema is published, run EF Core Power Tools to generate the C# entity classes and `DbContext` configuration from the live database. This is the bridge between SSDT and EF Core. The generated entities go in `Database.Sql.{Feature}/Entities/`.
+4. **Delete any hand-written entities or migrations.** If scaffolding produced hand-written entity classes or a `/Migrations/` folder, delete them after the reverse-engineer completes. SSDT owns the schema; EF Core Power Tools owns the entity generation. No dual sources.
 
-**Legacy:** If using an earlier EF Core version, implement soft delete with a `DeletedAt` column and a query filter: `modelBuilder.Entity<User>().HasQueryFilter(u => u.DeletedAt == null)`
--->
+**Rules:**
+- No EF migrations in SSDT-managed projects. No `/Migrations/` folder, no `dotnet ef migrations add`, no snapshot files.
+- Schema changes go through SSDT `.sql` files, not through C# entity modifications. Change the SQL first, publish, then re-run the reverse-engineer to update the C# classes.
+- New bounded contexts (new `scXxx` schemas) always use SSDT-first. This is not optional.
+- The reverse-engineer step is a gated dependency in the phase plan. It must be called out explicitly as its own line item so it doesn't get skipped or forgotten. See `project-scoping-bp.md` Section 8.
 
-## 4.7 Database-Defaulted Values
+**SSDT conventions (reference):**
 
-Some values (like `CreatedAt` timestamps) should be set by the database, not by the application. This prevents time skew and ensures consistency.
+| Convention | Example |
+|------------|---------|
+| Schema per bounded context | [scYourBoundedContext], [scYourBoundedContext], [scYourBoundedContext] |
+| Sequence naming | [scYourBoundedContext] (start 1000000) |
+| Temporal table naming | [scYourBoundedContext] |
+| Lookup/status tables | [scYourBoundedContext] with seed data in `Initialize/InitTypes.sql` |
+| Post-deployment script | `Script.PostDeployment.sql` includes all `InitTypes.sql` files |
+
+**Lesson learned (SNOUT, March 2026):** The initial SNOUT scaffolding hand-wrote 8 entity classes and a migration. When the schema was later defined properly in SSDT, the hand-written entities had drifted (wrong PK types, missing audit columns, missing temporal tables). The reverse-engineer step caught all of it, but only after rework. Starting with SSDT from day one would have avoided the entire detour.
+
+## 4.5 EF Core Temporal Table Configuration (EF Core 9+)
+
+In EF Core 9, temporal table period columns (`SysStart`, `SysEnd`) are **shadow properties** by default. Do not add them as CLR properties on the entity class. The entity owns the business columns; the temporal tracking columns are owned by EF Core and SQL Server.
+
+**Correct configuration (Fluent API):**
 
 ```csharp
-// In Fluent API configuration:
-builder.Property(e => e.CreatedAt)
-    .HasDefaultValueSql("GETUTCDATE()");
+entity.ToTable("[YourEntity]", "dbo")
+    .ToTable(tb => tb.IsTemporal(ttb =>
+    {
+        ttb.UseHistoryTable("[YourEntity]History", "dbo");
+        ttb.HasPeriodStart("SysStart").HasColumnName("SysStart");
+        ttb.HasPeriodEnd("SysEnd").HasColumnName("SysEnd");
+    }));
 ```
 
-**Rule:** If a column has a database default, don't set it in application code. EF Core's change tracking will ignore the database-set value on insert. Use `SQL scalar defaults` for timestamps and `SQL functions` for generated columns.
+**Incorrect pattern (causes runtime exception):**
+```csharp
+// DO NOT add these to the entity class — they conflict with EF shadow properties
+public DateTime SysStart { get; set; }
+public DateTime SysEnd { get; set; }
+```
+
+**Lesson learned (HAF Chat, March 2026):** We added `SysStart` and `SysEnd` as CLR properties on `[YourEntity]`. This caused EF Core to treat them as both explicit properties and temporal shadow properties, producing a runtime conflict. We fixed it once ourselves (commit `cc59b78`) but never wrote the rule. Tyler's team had to fix it again (commit `d455236` + `948acb6`). A fix that doesn't get captured as a standard is just a fix that gets repeated.
+
+## 4.6 New Entity Configuration Checklist
+
+When adding a new EF Core entity to either codebase, verify every item in this checklist before marking the entity complete. These are required configurations that existing entities all have. Missing any one causes subtle runtime bugs.
+
+| Item | What to configure | Example |
+|------|-------------------|---------|
+| Primary key | `entity.HasKey(e => e.Id);` | Every entity |
+| Table and schema | `entity.ToTable("TableName", "schema");` | `entity.ToTable("[YourEntity]", "dbo");` |
+| RowVersion / concurrency | `entity.Property(e => e.RowVer).IsRequired().IsRowVersion().IsConcurrencyToken();` | Required on every table with a `RowVer` column |
+| Temporal table config | `IsTemporal()` with `HasPeriodStart`/`HasPeriodEnd` as shadow properties (see Section 4.5) | Every temporal table |
+| Audit columns | `HasDefaultValueSql("GETUTCDATE()")` for `CreatedDate`, `HasDefaultValue(true)` for `IsActive`, etc. | Match existing entity patterns |
+| Uid column | `HasDefaultValueSql("NEWID()")` | Every entity with a `Uid` GUID column |
+| Indexes | Named indexes with `HasDatabaseName()` | `entity.HasIndex(e => e.GymId).HasDatabaseName("IX_[YourEntity]_GymId");` |
+| Unique constraints | Named unique indexes | `entity.HasIndex(e => new { e.UserId, e.GymId }).IsUnique().HasDatabaseName("UQ_[YourEntity]_UserGym");` |
+| Navigation properties | `HasOne`/`HasMany` with `WithMany`/`WithOne` + `HasForeignKey` + `OnDelete` behavior | Check existing entities for the pattern |
+| Default values | `HasDefaultValue()` or `HasDefaultValueSql()` for columns with DB defaults | See Section 4.7 below |
+
+## 4.7 Database-Defaulted Values: Don't Set in Code
+
+If a column has a `HasDefaultValueSql()` or `HasDefaultValue()` configuration in the Fluent API, application code must not manually assign that value when creating a new entity instance. The database owns the default.
+
+**Why:** (a) Setting it in code contradicts the single source of truth (the DB default). (b) `DateTime.UtcNow` uses the app server's clock, while `GETUTCDATE()` uses the DB server's clock; in distributed systems these can diverge. (c) Future changes to the default only need to happen in one place (the DB), not in every code path that creates the entity.
+
+```csharp
+// Correct — let the DB default handle it
+[YourEntity] thread = new [YourEntity]
+{
+    UserId = userId,
+    GymId = gymId,
+    IsActive = true  // Only set if explicitly needed; check if HasDefaultValue covers it
+};
+
+// Wrong — manually setting a DB-defaulted column
+[YourEntity] thread = new [YourEntity]
+{
+    UserId = userId,
+    GymId = gymId,
+    CreatedDate = DateTime.UtcNow,  // REMOVE — HasDefaultValueSql("GETUTCDATE()") handles this
+    IsActive = true
+};
+```
+
+**Lesson learned (HAF Chat, March 2026):** `[YourRepository]` set `CreatedDate = DateTime.UtcNow` on new `[YourEntity]` entities despite the column having `HasDefaultValueSql("GETUTCDATE()")`. Tyler's team removed it (commit `e24c04d`). Harmless in most cases but creates clock skew in distributed environments and obscures the real default source.
 
 ---
 
 ## Corrections Log
 
-*Tracks issues found when following this file's instructions.*
+*Tracks issues found when following this file's instructions. Entries are added when a discrepancy is discovered and a fix is applied or proposed.*
 
-| Date | What Failed | Root Cause | Fix Applied |
-|------|-------------|------------|-------------|
+| Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
+|------|-------------|------------|-------------|---------------|
 
+**Notes:**
+<!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->

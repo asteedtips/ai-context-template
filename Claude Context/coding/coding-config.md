@@ -1,129 +1,183 @@
+---
+type: context-file
+parent: "`coding-index.md`"
+summary: "TIPS Kernel Settings pattern ([YourSettingsConfig] hierarchy, service injection, Azure App Config key naming), [YourProject] config pattern, new library adoption protocol, and NuGet version management."
+tags: [coding, config, settings, kernel, azure-app-config]
+---
+
 # Configuration & Settings Standards
 
-> **Part of the Coding Standards Graph.** This file covers configuration patterns, service injection, and environment-specific behavior. For the full standards index, see `coding-index.md`.
+> **Part of the the Coding Standards Graph (`coding-index.md`).** This file covers configuration patterns for both TIPS (Kernel Settings) and [YourOrg]. For the full standards index, see `coding-index.md`.
 
-## 3.1 Configuration Management Pattern
+## 3.1 The Kernel Settings Pattern (TIPS, Mandatory)
 
-All configuration follows a hierarchical, strongly-typed structure. Define a POCO tree that mirrors your configuration branches:
+All TIPS services use `[YourApp].Kernel.Settings` for configuration. This is the only sanctioned pattern. Do not use feature-specific `IOptions<T>` binding, standalone settings POCOs with `services.Configure<T>()`, or `IConfiguration` injection in service classes.
 
-<!-- CUSTOMIZE: Define your configuration hierarchy. Example:
-
-```
-ApplicationConfiguration
-├── App                                  ← Feature-specific operational config
-│   ├── ExternalServices
-│   │   ├── PaymentGateway              ← ApiKey, Endpoint, Timeout
-│   │   └── NotificationService         ← ApiKey, Endpoint, MaxRetries
-│   └── Features
-│       ├── ReportGeneration            ← BatchSize, TimeoutMinutes, Schedule
-│       └── Authentication              ← TokenExpiryMinutes, RefreshTokenDays
-├── Shared                              ← Shared infrastructure config
-│   ├── Database                        ← ConnectionString, CommandTimeout
-│   ├── Logging                         ← Level, Retention, Endpoint
-│   └── Cache                           ← Endpoint, EvictionPolicy, TtlMinutes
-└── Environment                         ← "Development", "Staging", "Production"
-```
--->
-
-**Architecture pattern:**
+**Architecture:**
 
 ```
-Configuration Source (files, environment variables, cloud config service)
-  ↓
-IOptions or IConfiguration binding
-  ↓
-Centralized SettingsService (scoped)
-  ↓
-Feature services (injected via constructor)
+Azure App Configuration (SysCfg:* keys)
+  ↓ bound via AddAzureAppConfiguration()
+IOptionsSnapshot<[YourSettingsConfig]>
+  ↓ injected into
+[YourSettingsService] (scoped)
+  ↓ injected into
+Feature services (via constructor injection)
 ```
 
-## 3.2 Service Injection Pattern
+**How it works:**
 
-Services receive a configuration/settings service via constructor injection and extract needed values into private readonly fields:
+1. `DIKernelSettings.AddKernel[YourSettingsService]s()` connects to Azure App Configuration, loads all keys under the `SysCfg:` prefix, wires up Key Vault references for secrets, and binds the tree to `[YourSettingsConfig]` via `IOptionsSnapshot<T>`.
+2. `[YourSettingsService]` wraps `IOptionsSnapshot<[YourSettingsConfig]>` and exposes a `.Settings` property.
+3. Services inject `[YourSettingsService]` and extract needed values into private `readonly` fields at construction time.
+4. Dynamic refresh works via a sentinel key (`SysCfg:AlertCfgChangeSentinel`) — update the sentinel and all settings reload.
+5. Label-based overrides handle environment differences: `(null)` for production, `DevTestOverride`, `EnvironmentOverride`, `Local`.
 
-<!-- CUSTOMIZE: Show the pattern for your stack. Example with Azure App Configuration:
+## 3.2 [YourSettingsConfig] Hierarchy
+
+All configuration lives in a single strongly-typed POCO tree rooted in `[YourSettingsConfig]`. The hierarchy is organized by scope:
+
+```
+[YourSettingsConfig]
+├── App                              ← Feature-specific operational config
+│   ├── AppProvider                  ← External carrier/vendor integrations
+│   │   ├── Bandwidth                ← AccountId, ApiUrlV1, ApiUrlV2, UserId, Password
+│   │   └── Inteliquent              ← ApiKey, ApiSecret, ApiUrl, ApiUrlToken
+│   ├── Snout                        ← PeenScheduleCron, RekeyConcurrencyLimit, RebootBatchSize
+│   ├── MeridianIvr                  ← GatherTimeoutSeconds, MaxApiRetries, DefaultTransferNumber, Cooperatives
+│   └── (flat properties)            ← MassNotifyCallDelay, database strings, email addresses, domain URLs
+├── Shared                           ← Shared infrastructure and cross-feature vendor config
+│   ├── SharedProvider
+│   │   ├── DataFactory              ← ResourceGroupName, DataFactoryName
+│   │   ├── [YourPlatform]               ← ApiKey, ApiPassword, ApiClientId, ApiClientSecret, ApiUrl, etc.
+│   │   ├── PostMark                 ← ServerTokenLetterOfAuthorization, ServerTokenServiceCode, etc.
+│   │   ├── Sip                      ← OutboundProxy, RegistrationExpirySeconds
+│   │   ├── Speech                   ← ServiceEndpoint, KeyCredential
+│   │   └── Zoho                     ← ApiClientId, ApiClientSecret, ApiRefreshToken, ApiTokenUrl
+│   │       ├── Books                ← ApiUrl (Books-specific endpoint)
+│   │       └── Desk                 ← DefaultDepartmentId, ApiUrl (Desk-specific endpoint)
+│   └── (flat properties)            ← CosmosUrl, ServiceBusFQNS, StorageAccountUrl, SubscriptionId
+├── AlertCfgChangeSentinel           ← Sentinel key for dynamic config refresh
+└── ActiveEnvironment                ← "Development", "Test", "Production"
+```
+
+**Placement rules, where new config goes:**
+
+- **Operational knobs for a feature** (timeouts, batch sizes, cron schedules) → `App.{FeatureName}`
+- **External carrier/vendor credentials and endpoints used only by one feature** → `App.AppProvider.{VendorName}`
+- **Vendor integrations used by multiple features** → `Shared.SharedProvider.{VendorName}`
+- **Shared platform credentials** (like Zoho OAuth used by both Books and Desk) → parent level under `SharedProvider` with product-specific children
+- **Infrastructure config** (Cosmos, Service Bus, storage) → `Shared` flat properties
+
+## 3.3 Service Injection Pattern
+
+Services receive `[YourSettingsService]` via constructor injection and extract settings into private `readonly` fields:
 
 ```csharp
-public class PaymentService(
-    SettingsService settingsService,
+public partial class BandwidthService(
+    [YourSettingsService] settingsService,
     HttpService httpService,
-    ILogger<PaymentService> logger) : BaseService(logger)
+    [YourLogService] logService) : BaseService(logService), ICarrierProvider
 {
-    private readonly string _apiKey = settingsService.Settings.App.ExternalServices.PaymentGateway.ApiKey;
-    private readonly string _endpoint = settingsService.Settings.App.ExternalServices.PaymentGateway.Endpoint;
-    private readonly int _timeoutSeconds = settingsService.Settings.App.ExternalServices.PaymentGateway.TimeoutSeconds;
+    private readonly [YourSettingsService] _settingsService = settingsService;
+    private readonly string AccountId = settingsService.Settings.App.AppProvider.Bandwidth.AccountId;
+    private readonly string UserId = settingsService.Settings.App.AppProvider.Bandwidth.UserId;
+    private readonly string Password = settingsService.Settings.App.AppProvider.Bandwidth.Password;
+    private readonly string ApiUrlV1 = settingsService.Settings.App.AppProvider.Bandwidth.ApiUrlV1;
+    private readonly string ApiUrlV2 = settingsService.Settings.App.AppProvider.Bandwidth.ApiUrlV2;
 }
 ```
--->
 
 **Rules:**
-- Extract settings to private readonly fields during construction. This caches values and avoids repeated nested property lookups throughout the class.
-- Never inject `IConfiguration` or raw `IOptions<T>` directly into feature services. Go through a centralized settings service.
-- If a service needs settings from multiple branches, extract all needed fields from the settings service. That's fine.
+- Extract settings to private `readonly` fields during construction. This caches values and avoids repeated nested property lookups throughout the class.
+- Never inject `IConfiguration`, `IOptions<T>`, or `IOptionsSnapshot<T>` directly into feature services. Always go through `[YourSettingsService]`.
+- If a service needs settings from multiple branches of the hierarchy (e.g., both `App.Snout` and `Shared.SharedProvider.Zoho`), that's fine, extract both sets of fields from `[YourSettingsService]`.
 
-## 3.3 Operational vs Structural Config
+## 3.4 Azure App Configuration Key Naming
 
-**Operational config varies by environment:** rate limits, timeouts, batch sizes, cron schedules, external API endpoints, feature flags, retry policies. This config belongs in a cloud config service or environment-specific configuration files that can be updated without code changes.
+Keys follow the colon-delimited hierarchy that maps directly to the `[YourSettingsConfig]` POCO tree:
 
-**Structural config rarely changes:** database connection strings (production connection string itself doesn't change, only which environment it points to), logging levels (changes only during troubleshooting), authentication authority URLs (change only if moving to a different identity provider). This config belongs in `appsettings.json` or source-controlled configuration.
+```
+SysCfg:{Branch}:{Class}:{Property}
+```
 
-**Rule:** If a value might need to change between deployments without code changes, it's operational config. Use environment-specific overrides or a cloud config service. If a value is part of how the system is structured, it's structural config.
+Examples:
+- `SysCfg:App:AppProvider:Bandwidth:AccountId` → `[YourSettingsConfig].App.AppProvider.Bandwidth.AccountId`
+- `SysCfg:Shared:SharedProvider:Zoho:ApiClientId` → `[YourSettingsConfig].Shared.SharedProvider.Zoho.ApiClientId`
+- `SysCfg:Shared:SharedProvider:Zoho:Desk:DefaultDepartmentId` → `[YourSettingsConfig].Shared.SharedProvider.Zoho.Desk.DefaultDepartmentId`
+- `SysCfg:App:Snout:PeenScheduleCron` → `[YourSettingsConfig].App.Snout.PeenScheduleCron`
+- `SysCfg:ActiveEnvironment` → `[YourSettingsConfig].ActiveEnvironment`
 
-<!-- CUSTOMIZE: Add guidance on how your team separates operational from structural config. Example:
+**Label organization:**
+- **(null label)** — production values (default)
+- **DevTestOverride** — development/test environment overrides
+- **EnvironmentOverride** — enabled via `TIP_USE_ENVIRONMENT_OVERRIDE_CONFIG` env var
+- **Local** — local development overrides, enabled via `TIP_IS_LOCAL_DEVELOPMENT` env var
 
-All operational values live in Azure App Configuration with environment-specific sections. Structural config stays in appsettings.json. Database connection strings are structural but environment-specific, stored in Key Vault and injected via managed identity at deployment time.
--->
+## 3.5 Azure Functions and the Kernel Settings Stack
 
-## 3.4 Environment-Specific Overrides
+Azure Functions that share a service layer with the Portal (e.g., `Snout.Func`) must call `AddKernel[YourSettingsService]s()` in their `Program.cs` to get the full `[YourSettingsService]` dependency chain. This is mandatory when the Function's service layer depends on shared services (`[YourPlatform]Service`, `ZohoDeskService`, etc.) that inject `[YourSettingsService]`.
 
-Configuration should support multiple environments (development, staging, production) without code changes.
+**Rule:** All Azure Functions in the TIPS solution call `AddKernel[YourSettingsService]s()`. No exceptions. Even if a Function only needs a subset of the configuration, the Kernel settings stack is the single entry point. This prevents configuration pattern drift between the Portal and Functions.
 
-<!-- CUSTOMIZE: Document your environment override strategy. Example:
+## 3.6 Adding New Configuration
 
-**Using Azure App Configuration:**
-- Keys in the **(null)** label are production defaults.
-- Keys in the **Staging** label override production values for staging deployments.
-- Keys in the **Development** label override for local development.
-- Keys in the **Local** label are machine-specific and never committed to source control.
+When a new feature or provider needs configuration:
 
-**Using appsettings files:**
-- `appsettings.json`  -  shared defaults
-- `appsettings.Development.json`  -  local development overrides
-- `appsettings.Staging.json`  -  staging overrides (if needed)
-- `.gitignore` includes `appsettings.Local.json` for machine-specific secrets
--->
+1. **Define the POCO class** — add a new nested class in `[YourSettingsConfig]` at the correct hierarchy level (see 3.2 placement rules).
+2. **Add the App Config keys** — create keys in Azure App Configuration following the `SysCfg:` naming convention (see 3.4). Secrets go in Key Vault with App Config key vault references.
+3. **No DI registration needed** — the Kernel settings binding automatically maps new POCO properties from the `SysCfg:` section. No `services.Configure<T>()` call required.
+4. **Inject `[YourSettingsService]`** — the new service accesses its config through `settingsService.Settings.{Path}`.
+5. **Add integration test coverage** — extend `SettingsTests.cs` to validate the new keys are populated in all environments.
 
-## 3.5 Adding New Configuration
+## 3.7 Known Migration: MeridianIVR Settings Standardization
 
-When a feature needs new configuration:
+`MeridianIvr` currently uses a standalone `IOptions<MeridianIvrOptions>` pattern with `services.Configure<T>()` binding. This predates the Kernel settings standardization decision and must be migrated:
 
-1. **Define the POCO class**  -  add a new nested class at the correct hierarchy level.
-2. **Add the source keys**  -  create keys in your config source (environment variables, `appsettings.json`, cloud config service, etc.) following your naming convention.
-3. **Register if needed**  -  if using `IOptions<T>` binding, add the registration in `Program.cs` or a DI extension method. If using a centralized settings service, no additional registration is needed.
-4. **Inject the settings service**  -  the new service accesses its config through dependency injection.
-5. **Add test coverage**  -  verify the new keys are loaded in all environments.
+- Move `MeridianIvrOptions` properties into `[YourSettingsConfig].App.MeridianIvr`
+- Switch `MeridianCisService` and `MeridianPaymentGatewayService` from `IOptions<MeridianIvrOptions>` to `[YourSettingsService]` injection
+- Update `MeridianIvr.Func/Program.cs` to call `AddKernel[YourSettingsService]s()`
+- Migrate App Config keys from `MeridianIvr:*` to `SysCfg:App:MeridianIvr:*`
+- Delete `MeridianIvrOptions.cs` after migration
 
-## 3.6 External Vendor Integration Configuration
+**Backlog:** The MeridianIVR multi-tenant `Cooperatives` dictionary config will eventually move to a SQL database table with a SNOUT management page for onboarding/managing cooperatives. Secrets per cooperative will use convention-based Key Vault naming (`meridianivr-{cooperativeId}-cis-username`) with startup caching. Until then, the dictionary structure remains in `[YourSettingsConfig]`.
 
-When integrating with external services:
+## 3.8 [YourProject] Configuration Pattern
 
-<!-- CUSTOMIZE: Define how vendor/external service config should be organized. Example:
+HAF does not use the TIPS Kernel settings stack. [YourProject] uses Azure App Configuration with `IOptions<T>` binding per feature.
 
-**API Keys and secrets:** All API keys, OAuth tokens, and authentication credentials go in Key Vault or a secrets vault. Reference them via Key Vault URIs in your config source. Never commit credentials to source control.
+**Rules for HAF:**
+- Operational settings that may vary by environment (rate limits, timeouts, max message lengths, bulk send caps, polling intervals) belong in Azure App Configuration, not in `appsettings.json`. The `appsettings.json` file is for structural config (connection strings, logging levels, authentication authority URLs) that rarely changes between deployments.
+- When adding a new feature with configurable values, create a settings POCO class (e.g., `ChatSettings`), bind it through `services.Configure<ChatSettings>(config.GetSection("Chat"))`, and inject via `IOptions<ChatSettings>`.
+- Register the corresponding keys in Azure App Configuration for each environment (dev, test, prod). Don't rely on `appsettings.json` defaults in deployed environments.
 
-**Endpoints and URLs:** External API endpoints belong in config, not hardcoded. They may change between environments (sandbox vs production endpoints) or may need to be updated without redeploying.
+## 3.9 New Library Adoption Protocol
 
-**Rate limits and timeouts:** Put thresholds that you'll tune based on production behavior into config. Example: external API rate limit is 1,000 requests per hour, but your code implements a batching strategy with a configurable batch size and timeout.
+When introducing a new library or framework into a codebase that already uses a different approach for the same concern (e.g., adding FluentValidation where DataAnnotations are used), include a developer orientation step:
+- Add a brief section in the PR description or docs explaining why the library was chosen and where it applies.
+- Include at least one example validator/implementation in the PR as a reference pattern.
+- If the plan is to migrate the existing approach over time, document the migration scope and timeline. Don't leave it ambiguous whether old code should be converted.
 
-**Feature-specific vendor config:** If a vendor integration is used by only one feature, nest it under that feature's config branch. If multiple features use the same vendor (e.g., a shared payment processor), nest it under a Shared branch.
--->
+## 3.10 Internal NuGet Package Version Management
+
+When working on a feature branch that spans multiple weeks, internal NuGet packages (e.g., `[YourOrg].Kernel`, `[YourOrg].Kernel.Entity`, `[YourOrg].Kernel.Messaging`) may receive updates on `main` during the feature work. Before handing off or merging a long-lived feature branch:
+
+1. Check the current version of internal packages on `main` or the latest published version.
+2. Update all `.csproj` references in the feature branch to the latest stable version.
+3. Build and test to confirm compatibility.
+
+**Why:** If the kernel or shared packages get bug fixes or new features while the feature branch is open, merging the branch will revert those packages to the old version unless the branch is updated first. This creates silent regressions.
+
+**Lesson learned (HAF Chat, March 2026):** The facility-chat branch pinned `[YourOrg].Kernel` at `1.1.17` for the duration of the project. By handoff, `1.1.20` was the current version. Tyler's team had to bump all 6 `.csproj` files (commit `611befa`). A pre-handoff version check would have caught it.
 
 ---
 
 ## Corrections Log
 
-*Tracks issues found when following this file's instructions.*
+*Tracks issues found when following this file's instructions. Entries are added when a discrepancy is discovered and a fix is applied or proposed.*
 
-| Date | What Failed | Root Cause | Fix Applied |
-|------|-------------|------------|-------------|
+| Date | What Failed | Root Cause | Fix Applied | ERRORS.md Ref |
+|------|-------------|------------|-------------|---------------|
 
+**Notes:**
+<!-- Per-entry context that doesn't fit in the table. Format: "YYYY-MM-DD: [explanation]" -->
