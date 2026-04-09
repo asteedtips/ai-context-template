@@ -154,6 +154,40 @@ The primary verification gate is your CI system, not local builds. CI runs on cl
 - Set explicit cache expiration; never cache indefinitely
 - Monitor cache hit rates in production
 
+### 10.4 DateTimeOffset Required for External API Date Parameters
+
+When passing date/time values to external APIs, always use `DateTimeOffset`, not `DateTime`. `DateTime.UtcNow.Date` returns a `DateTime` with `Kind = Unspecified` after `.Date` strips the time component. When serialized with `ToString("o")`, this produces a string with no UTC offset — some API servers silently interpret this as local time, shifting the query window by the server's timezone offset.
+
+```csharp
+// Bad — strips timezone Kind, produces no UTC offset
+string startDate = DateTime.UtcNow.Date.ToString("o");
+
+// Good — preserves UTC offset
+string startDate = DateTimeOffset.UtcNow.Date.ToString("o");
+```
+
+**Rule:** Use `DateTimeOffset.UtcNow` (not `DateTime.UtcNow`) for any date value passed as a query parameter to an external API. This applies to calendar queries, date range filters, and any external service that interprets date strings.
+
+**Lesson learned (a project, April 2026):** A calendar API returned zero events because the query window was shifted by the server's timezone offset. The fix was one character — `DateTimeOffset` instead of `DateTime`. Two separate issues traced to the same root cause before it was identified.
+
+### 10.5 DI Registration: Keyed Services Are Invisible to IEnumerable<T> Injection
+
+`AddKeyedScoped`, `AddKeyedTransient`, and `AddKeyedSingleton` register a service under a specific key. When another service injects `IEnumerable<T>` to get all implementations of an interface, .NET's DI container does **not** include keyed registrations in that enumeration. The result is an empty collection with no error — the service silently never dispatches.
+
+**Rule:** Services that need to be resolved via `IEnumerable<T>` (the strategy/executor pattern) must be registered with `AddScoped`, `AddTransient`, or `AddSingleton` — not their keyed variants.
+
+```csharp
+// Bad — keyed registration is invisible to IEnumerable<IHandler> injection
+services.AddKeyedScoped<IHandler, ConcreteHandlerA>("typeA");
+
+// Good — standard registration is visible to IEnumerable<IHandler>
+services.AddScoped<IHandler, ConcreteHandlerA>();
+```
+
+Use `AddKeyedScoped` only when you retrieve the service explicitly by key via `[FromKeyedServices("key")]` or `IServiceProvider.GetKeyedService<T>("key")`. If you need both patterns, register twice: once keyed, once standard.
+
+**Lesson learned (a project, April 2026):** Action executors were registered with `AddKeyedScoped` but injected as `IEnumerable<IActionExecutor>`. The executor loop received zero executors and silently processed no actions. No exception was thrown — the failure was invisible until manual testing.
+
 ---
 
 ## 11. Documentation Standards

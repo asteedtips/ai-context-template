@@ -49,10 +49,25 @@ When adding a new `@page` component, all of the following must be verified befor
 1. **DI verification** — every `@inject` in the new page resolves to a service registered in both `Program.cs` (Blazor WASM) and `MauiProgram.cs` (MAUI). Grep the startup files for each injected type.
 2. **Navigation entry** — the page is reachable from the UI. Add a menu item, button, or link in the appropriate navigation component (e.g., [YourNavBar] hamburger menu). A routable page with no way to reach it is incomplete.
 3. **SharedNavigator mapping** — if the page uses an `AppRoute` enum value, confirm the route is mapped in both SharedNavigator implementations (Blazor WASM and MAUI). Unmapped routes throw `NotImplementedException`.
-4. **Auth/layout directives** — confirm `@attribute [Authorize]`, `@layout`, and `@rendermode` match the pattern of sibling pages in the same area. If existing pages in the same feature omit these, the new page should too.
+4. **Auth directive — hard rule, not "match siblings"** — every routable `@page` component must have an explicit `@attribute [Authorize(Policy = AuthorizePolicy.[YourPolicy])]` (or `[Authorize]` at minimum). Never omit it because sibling pages omit it, and never rely on a layout component to enforce auth. Verify with:
+   ```bash
+   grep -rn "@page " [YourApp]/ --include="*.razor" | \
+     awk -F: '{print $1}' | sort -u | xargs -I{} sh -c \
+     'grep -lq "Authorize" {} || echo "MISSING AUTH: {}"'
+   ```
+   Any file printed is missing its `[Authorize]` attribute. Fix before committing.
 5. **Both platforms** — if the page is Blazor WASM only, confirm MAUI doesn't need it. If it applies to both, verify DI and navigation in both projects.
+6. **Dirty-form guard** — if the page has any Save/Submit button for an inline form (not a dialog), add `NavigationLock` + `_isDirty` per Section 8.1.5 before committing. Skip only for read-only pages and action-dispatch pages that have no persistent form state.
+7. **JS interop verification** — if the page calls `JSRuntime.InvokeAsync` or `InvokeVoidAsync`, verify the named function exists in a `.js` file under `wwwroot/`. The compiler does not catch missing JS functions. Grep for the function name string before committing:
+   ```bash
+   grep -r "InvokeVoidAsync\|InvokeAsync" YourPage.razor | \
+     grep -oP '"[a-zA-Z_][a-zA-Z0-9_]*"' | sort -u
+   # Then confirm each extracted name exists in wwwroot/
+   ```
 
 **Lesson learned (PR #[N] Phase [N], March 2026):** Thread list pages were built with correct routes and SharedNavigator mapping, but `ChatConnectionService` was never registered in DI (pre-existing gap across all chat pages), and no hamburger menu items were added. Tyler hit both issues on first test. Root cause: no page-level completeness checklist existed.
+
+**Lesson learned (a project, April 2026):** Pages shipped with `[Authorize]` commented out, giving unauthenticated roles full page access. A JS interop call was present for multiple sessions before the backing function was added to `wwwroot/`. Settings pages shipped without `NavigationLock`, causing silent data loss on navigation. All three were checklist misses, not logic errors.
 
 ### 8.1.3 Page Header / Navigation Bar Consistency
 
@@ -65,6 +80,26 @@ Before building a page header (back button bar, title bar, app bar), check what 
 **When building an immersive/detail page** (e.g., a chat conversation): A custom back-header bar is appropriate. Use the component that sibling detail pages use.
 
 **Lesson learned (HAF Chat, March 2026):** We used `<MudPaper>` with `theme-bg-primary` for back-header bars on new-message pages. Other pages in the same area used `<MudAppBar Color="Color.Primary" Fixed="false">`. Tyler's team had to fix the inconsistency in PR #[N]. A 30-second check of sibling pages would have prevented it.
+
+**Nav menu section grouping:** If your portal nav uses a flat grouped pattern (rather than accordion or collapsible panels), new feature sections must follow the same structure as existing sections. Verify by opening the nav component before adding a new section. Do not introduce collapsible patterns unless existing nav already uses them.
+
+```razor
+@* Section header — non-clickable, bold, muted *@
+<div class="nav-item px-2 pt-2">
+    <span class="nav-link text-nowrap fw-bold text-muted">SECTION NAME</span>
+</div>
+
+@* Child items — indented *@
+<div class="nav-item px-2" style="padding-left:19px">
+    <NavLink class="nav-link text-nowrap" href="your-route" Match="NavLinkMatch.All">
+        Page Title
+    </NavLink>
+</div>
+```
+
+Wrap sections that require authentication in `<AuthorizeView Policy="@(AuthorizePolicy.[YourPolicy])">`.
+
+**Lesson learned (a project, April 2026):** Nav items were added outside the `<AuthorizeView>` wrapper and not grouped under a section header. A 30-second check of the existing nav structure would have prevented both issues.
 
 ### 8.1.4 Blazor Dialog and Form Validation Checklist
 
@@ -95,6 +130,104 @@ Every MudBlazor dialog that accepts user input must include:
 ```
 
 **Lesson learned (a prior project handoff, March 2026):** The `GeneratePassDialog` shipped without required field validation or a loading state. Tyler's team added both in PR #[N] (6 fields got `Required` + `RequiredError`, plus the full loading spinner pattern). These patterns should be standard for every dialog, not discovered during QA.
+
+**Caller responsibility after dialog close:** After `var result = await dialog.Result`, if the dialog returned data that affects any derived display state — labels, summaries, computed values — those must be explicitly recalculated before the next render. Blazor does not automatically re-derive computed properties when a dialog mutates underlying data.
+
+```csharp
+var result = await dialog.Result;
+if (!result.Canceled && result.Data is MyResultType data)
+{
+    _myField = data.Value;
+    // Re-derive display state that depends on _myField
+    _myFieldDisplayLabel = ComputeLabel(_myField);
+    // OR call StateHasChanged() if values are computed in markup expressions
+}
+```
+
+**Lesson learned (a project, April 2026):** A dialog returned a new value that was applied to a config field, but a human-readable label derived from that field (computed inline in markup) did not update. Blazor's re-render cycle was not triggered after the dialog closed. Fix: call `StateHasChanged()` after applying the dialog result.
+
+### 8.1.5 Dirty-Form Guard (NavigationLock) — Required on All Settings Pages
+
+Every Blazor page with a Save button must have a dirty-form guard that prompts the user before navigating away with unsaved changes.
+
+**Rule:** Any page with a Save button for an inline form (not a dialog) must include `NavigationLock` and a `_isDirty` flag. Dialogs are exempt — they use Cancel/Confirm semantics instead.
+
+**Standard pattern:**
+
+```razor
+<NavigationLock OnBeforeInternalNavigation="OnBeforeInternalNavigation"
+                ConfirmExternalNavigation="@_isDirty" />
+```
+
+```csharp
+private bool _isDirty;
+
+// Convert @bind-Value bindings to Value+ValueChanged to track changes:
+//   <MudTextField T="string" Value="@_myField"
+//                 ValueChanged="@((v) => { _myField = v; _isDirty = true; })" />
+
+private async Task OnBeforeInternalNavigation(LocationChangingContext ctx)
+{
+    if (!_isDirty) return;
+    bool? leave = await _dialogService.ShowMessageBox(
+        "Unsaved Changes",
+        "You have unsaved changes. Leave this page?",
+        yesText: "Leave", cancelText: "Stay");
+    if (leave != true) ctx.PreventNavigation();
+}
+
+private async Task SaveMySettings()
+{
+    // ... save logic ...
+    if (saveSucceeded)
+    {
+        _snackbar.Add("Settings saved.", Severity.Success);
+        _isDirty = false;  // ← required
+    }
+}
+```
+
+**Also required:** Set `_isDirty = false` before any programmatic `NavigateTo` call in save, delete, and clone handlers. `NavigationLock` intercepts programmatic navigation too — without this the guard fires on your own intentional navigation.
+
+**Namespace:** Add `@using Microsoft.AspNetCore.Components.Routing` to `_Imports.razor`.
+
+**Checklist for any new settings page:**
+- [ ] `NavigationLock` component in markup
+- [ ] `_isDirty` private field
+- [ ] `OnBeforeInternalNavigation` using `IDialogService.ShowMessageBox`
+- [ ] All `@bind-Value` on user-editable controls converted to `Value + ValueChanged` pattern
+- [ ] All state-mutating methods set `_isDirty = true`
+- [ ] All save/delete/clone handlers set `_isDirty = false` before `NavigateTo`
+- [ ] Duplicate Save button in `CardHeaderActions` for long-scroll forms
+
+### 8.1.6 Interactive UI Affordances Must Have Wired Events
+
+Any UI element that visually implies an interaction must have its event handlers implemented in the same commit. A drag handle icon, an expand/collapse caret, sortable row arrows — if it looks interactive, it must be interactive. Visual affordances with no backing code are a pre-commit failure.
+
+**Rule:** Before committing any component with a visual affordance, confirm every implied interaction has a handler that does something meaningful — changes state, reorders data, or emits an event.
+
+**Checklist before committing:**
+- [ ] Drag handle present → `draggable="true"` + `@ondragstart`, `@ondragover:preventDefault`, `@ondragover`, `@ondrop`, `@ondragend` all wired
+- [ ] Up/down arrow buttons → `OnClick` handlers that actually reorder the underlying list
+- [ ] Expand/collapse indicator → click handler that toggles state
+- [ ] Sortable column header → sort state field + click handler + visual sort indicator
+
+```razor
+@* Bad — drag icon is purely cosmetic *@
+<MudIcon Icon="@Icons.Material.Filled.DragIndicator" />
+
+@* Good — drag icon with all required events *@
+<div draggable="true"
+     @ondragstart="@(() => _draggingIndex = idx)"
+     @ondragover:preventDefault
+     @ondragover="@(() => { if (_dragOverIndex != idx) _dragOverIndex = idx; })"
+     @ondrop="@(() => HandleDrop(idx))"
+     @ondragend="@(() => { _draggingIndex = -1; _dragOverIndex = -1; })">
+    <MudIcon Icon="@Icons.Material.Filled.DragIndicator" />
+</div>
+```
+
+**Lesson learned (a project, April 2026):** A list had a drag handle icon and up/down arrows. The arrows worked, but the drag handle had zero events wired. Discovered during smoke testing, not code review. The fix required a follow-up commit.
 
 ## 8.2 State Management
 
