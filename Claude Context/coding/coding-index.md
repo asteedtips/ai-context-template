@@ -14,6 +14,8 @@ tags: [coding, moc, index]
 
 ## Architecture & Structure
 
+**`scoping-phased-delivery.md` Section 8.0** — Spike Phase Protocol. When a feature's shape is uncertain (new external API, complex data model, no mockups), run a time-boxed spike (2 sessions max, throwaway branch) before creating the feature branch. The spike's deliverable is the scoping doc, not code. Includes the Vertical Slice Gate: one end-to-end flow must run against real data before bulk implementation begins. **Read when:** starting any new feature, especially one involving an external API or 5+ new entities.
+
 **`coding-architecture.md`** — Project layering rules (UI → Service → Entity → Database), naming conventions for projects, namespaces, classes, methods, and files. Entity/DTO mapping patterns (factory methods vs inline assignment). Enum placement convention (Dtos/Enums/ for cross-layer). Solution organization (.editorconfig, infra folder). **Read when:** creating new projects, reviewing layer references, naming anything, adding enums.
 
 ## Code Quality
@@ -46,7 +48,7 @@ tags: [coding, moc, index]
 
 ## CI/CD
 
-**Sections 9.1-9.4.3 remain in [[coding-best-practices]]** — Pipeline requirements (build/test/upload per push), branch strategy (dev/main/feat), environment configuration, CI-first verification (not VM-first), Desktop Commander local builds (Section 9.3.1: required tool for all TIPS .NET builds, full macOS path `/opt/homebrew/bin/dotnet`, SSDT exception, repo root path), pre-push checklist, compile-run-fix loop, CI monitor gate and wave close rules, and session length caps with gate breaks (Section 9.4.3: one wave per session for Tier 3 features, mandatory gate break between waves). **Read when:** working with GitHub Actions, pushing code, closing waves, running local builds via Desktop Commander. See also `github-actions-bp.md` for full workflow templates.
+**Sections 9.1-9.4.3 remain in [[coding-best-practices]]** — Pipeline requirements (build/test/upload per push), branch strategy (dev/main/feat), environment configuration, CI-first verification (not VM-first), Desktop Commander local builds (Section 9.3.1: required tool for all .NET builds, full macOS path `/opt/homebrew/bin/dotnet`, SSDT exception, repo root path), pre-push checklist, compile-run-fix loop, CI monitor gate and wave close rules, and session length caps with gate breaks (Section 9.4.3: one wave per session for Tier 3 features, mandatory gate break between waves). **Read when:** working with GitHub Actions, pushing code, closing waves, running local builds via Desktop Commander. See also `github-actions-bp.md` for full workflow templates.
 
 ## Performance & Reliability
 
