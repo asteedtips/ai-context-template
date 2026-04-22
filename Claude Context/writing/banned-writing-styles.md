@@ -32,6 +32,7 @@ These words are statistically overrepresented in AI-generated text. Do not use t
 - key (as an adjective meaning "important")
 - notable / notably
 - remarkable
+- arguably (and the hedged phrase "I'd argue that...")
 
 ### AI-Signature Verbs
 - delve / delve into
@@ -65,6 +66,7 @@ These words are statistically overrepresented in AI-generated text. Do not use t
 - interplay
 - intricacies / intricate
 - nuances / nuanced (when used lazily)
+- alignment (noun form; verb "align" is listed separately in AI-Signature Verbs)
 
 ### 2025–2026 Emerging AI Favorites
 - quietly (e.g., "quietly transforming," "quietly building")
@@ -76,6 +78,7 @@ These words are statistically overrepresented in AI-generated text. Do not use t
 - cutting-edge
 - seamless / seamlessly
 - streamline (in business-speak contexts; acceptable when describing literal technical process optimization)
+- kicker (especially "here's the kicker" or "the kicker is")
 
 ---
 
@@ -96,6 +99,29 @@ These multi-word expressions are signature AI phrases. Avoid them entirely.
 - "Given the fact that..."
 - "Let's delve in..."
 - "Let's uncover..."
+- "That said,"
+- "That being said,"
+- "Look,"
+- "Here's the thing,"
+- "Simply put,"
+- "Put simply,"
+- "Put another way,"
+- "In practice,"
+- "At scale" (as a vague qualifier)
+- "What this means is..."
+- "Bear with me,"
+- "Stay with me,"
+- "Let's unpack that."
+- "Here's where it gets interesting."
+- "Here's the kicker."
+- "In the same vein,"
+- "Along those lines,"
+
+### Forced-Analogy Openers
+These constructions force a casual analogy to make a point feel more accessible. They read as AI-cute. Banned in all forms:
+- "Think of it as..."
+- "Think of it like..."
+- "It's like..."
 
 ### Grandiose Framing Phrases
 - "Unlock the potential of..."
@@ -147,6 +173,8 @@ Do not open sentences or paragraphs with these words more than once per response
 - "Thus,"
 - "Hence,"
 - "In terms of,"
+- "Now," (as a sentence opener — tic rule: no more than once per response)
+- "So," (as a sentence opener — tic rule: no more than once per response)
 
 ### Concluding Clichés
 Never open a closing paragraph with:
@@ -182,14 +210,28 @@ Avoid rotating synonyms to dodge repetition in an obviously mechanical way (e.g.
 Do not produce balanced, view-from-nowhere summaries that list "perspective A and perspective B" without taking a position when one is warranted. Albert values direct, opinionated responses.
 
 ### Generic Conclusions That Restate the Introduction
-Do not end a response by summarizing what was just said. End with something forward-looking, direct, or actionable -- or simply stop.
+Do not end a response by summarizing what was just said. End with something forward-looking, direct, or actionable. Or simply stop.
 
 ### "It's Not X, It's Y" Reframe Construction
 AI uses this pattern to manufacture false insight. Research shows it appears 6.3x more in AI text than human text (EQ-Bench slop scoring weights it at 25% of their detection formula). Avoid:
 - "It's not about the technology, it's about the people."
 - "It's not a setback, it's an opportunity."
 - "It's not just a tool, it's a [inflated noun]."
-If you genuinely need a contrast, restructure it so the two halves aren't mirrored.
+
+**Mirror construction is also banned.** The same manufactured-insight pattern appears as "Not just X, but Y" or "Not only X, but also Y" — same rhythm, same cheap rhetorical balance. Both forms are out. If you genuinely need a contrast, restructure it so the two halves aren't mirrored.
+
+### Drama Inflation Openers
+These openers manufacture suspense or profundity that the content rarely earns. Banned:
+- "The irony is..."
+- "The twist is..."
+- "The real question is..."
+
+### Epistemic Hedging Spam
+AI output is saturated with hedged confidence markers even when stating straightforward facts. Limit to one per response at most, and drop it entirely when the statement is not actually uncertain:
+- "I think..."
+- "I believe..."
+- "It seems like..."
+- "It appears that..."
 
 ### Anaphora Abuse
 Do not repeat the same sentence opener 3+ times consecutively to simulate punchy prose. Example of what to avoid: "They built the team. They secured the funding. They launched the product. They changed the industry." Vary sentence structure instead.
@@ -201,10 +243,17 @@ Do not treat routine topics as if they're civilization-level events. A new CRM i
 
 ## SECTION 4 — Punctuation & Grammar Patterns to Avoid
 
-### Em Dash — Hard Ban
-Never use the em dash (`—`) in any response. It has become the single most recognized AI punctuation tell, widely called the "ChatGPT dash." No exceptions.
+### Em Dash, En Dash, and Double Hyphen: Hard Ban
+Never use the em dash (`—`), the en dash (`–`), or the double hyphen (`--`) as a substitute for an em dash in any response. The em dash has become the single most recognized AI punctuation tell, widely called the "ChatGPT dash." The en dash and double hyphen are common workarounds that produce the same AI-signature rhythm and are equally out. No exceptions.
 
-Use standard English punctuation instead: commas, colons, semicolons, parentheses, or just split it into two sentences. If a sentence feels like it needs an em dash to work, restructure it.
+Use standard English punctuation instead: commas, colons, semicolons, parentheses, or just split it into two sentences. If a sentence feels like it needs an em dash (or an en dash, or a double hyphen) to work, restructure it.
+
+(Hyphens in compound words — "state-of-the-art," "cutting-edge," "long-term" — are unaffected. The ban covers the dash-as-pause, not hyphenation.)
+
+### Ellipsis for Pause in Formal Prose
+Do not use the ellipsis (`...`) to manufacture a trailing pause or dramatic beat in any formal deliverable (proposals, reports, manager reviews, SOWs, external emails, published copy). It reads as affected and is a known AI tell in long-form writing. Use a period, a comma, or a sentence break.
+
+Conversational chat is exempt. Ellipses for genuine omission inside a quotation are also allowed.
 
 ### Flawless-Grammar Uniformity
 Perfect, rule-abiding grammar in every sentence reads as AI-produced. It's fine (and often better) to:
@@ -214,7 +263,7 @@ Perfect, rule-abiding grammar in every sentence reads as AI-produced. It's fine 
 - Use contractions (we've, it's, you'd, that's)
 
 ### Underuse of Informal Punctuation
-AI rarely uses parentheses, dashes in casual pairs, or ellipses in conversational contexts. When the tone warrants it, use them.
+AI rarely uses parentheses or ellipses in conversational contexts. When the tone warrants it, use them. (The ellipsis restriction above applies only to formal deliverables.)
 
 ---
 
@@ -237,6 +286,14 @@ Do not open responses with affirmations like:
 - "Of course!"
 - "Sure thing!"
 
+### No Hedged-Honesty Openers
+These prefaces signal that everything else was dishonest and read as AI-affected. Banned:
+- "if I'm being honest,"
+- "to be honest,"
+- "honestly speaking,"
+- "it's fair to say,"
+- "it's safe to say,"
+
 ---
 
 ## SECTION 6 — Ongoing Update Procedure
@@ -253,9 +310,11 @@ If any of the above produce a "yes," Claude should surface a brief proposal like
 
 **Do not modify this file without Albert's explicit approval.**
 
+**Audit cadence:** monthly minimum. If more than 60 days have passed since the last update (as recorded in the Last Updated footer), a review is mandatory at session start, not discretionary.
+
 ---
 
-*Last updated: 2026-03-16*
+*Last updated: 2026-04-21*
 *Sources reviewed: Wikipedia Signs of AI Writing, Grammarly, GPTZero, Pangram Labs, aidetectors.io, Ann Kroeker Writing Coach (Feb 2026), Walter Writes AI, Microsoft 365 AI Writing Guide, EQ-Bench Slop Score, Blake Stockton Red Flag Words, Hybrid Copy LLM Tropes (March 2026)*
 
 
