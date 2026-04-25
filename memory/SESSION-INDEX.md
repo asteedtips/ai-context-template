@@ -34,3 +34,5 @@ Tags are lowercase, hyphenated. New tags can be added when no existing tag fits 
 | Date | File | Tags | Summary |
 |------|------|------|---------|
 <!-- Sessions will be appended here as they occur -->
+| 2026-03-31 | `2026-03-31-hybridaf-duda-review-02.md` | hybridaf, duda, faq, stats-bar | Phase 6 Duda review: corrected all 5 FAQ accordion items and built ROI/Stats Bar (4-stat dark section) as Custom HTML widget. |
+| 2026-04-08 | `2026-04-08-tips-engineering-skill-update.md` | tips-engineering, skill-update, ai-framework, coding-standards | Updated tips-engineering SKILL.md to align with split coding standards graph; added 9 topic node files to ai-framework/standards/; pushed commit cc18f73. |
