@@ -66,6 +66,10 @@ tags: [coding, moc, index]
 
 **Section 13 remains in [[coding-best-practices]]** — Patterns already working well in TIPS and [YourProject] that should be maintained, not refactored. **Read when:** reviewing code to understand what "good" looks like in these codebases.
 
+## Investigation & Debugging
+
+**`coding-investigation.md`** — 7-phase protocol for investigating issues. Phase 1: load architecture context from repo docs. Phase 2: App Insights KQL queries (by correlation ID/LogUid, by service role, by class category, time-window breadcrumb). Phase 3: Cosmos/document DB state queries (partition-scoped, lock check, run summary). Phase 4: SQL config queries via Desktop Commander (pyodbc + AAD service principal, ODBC Driver 18 on Mac). Phase 5: code tracing. Phase 6: hypothesis formation gate (4 questions before proceeding). Phase 7: reproduce via HTTP/trigger with live exception watching. Includes customizable vault secret reference table. **Read when:** any issue needs investigation — before forming any theory about root cause.
+
 ## Verification Agent Protocol
 
 **`coding-verification.md`** — Complexity-tiered sub-agent review system. Tier 1 (small): no agent. Tier 2 (medium): one code review agent. Tier 3 (large): two parallel agents. Agents check pattern compliance, mockup conformance, and external API rules. Also includes the pre-push staging verification gate (Section 14.5): `git status` check for unstaged modifications before every push. Runs after coding, before marking done. **Read when:** completing any code task to determine if verification agents should run, or before any git push.
