@@ -357,6 +357,19 @@ For Blazor component tests, use bUnit. A single shared UI test project (`[YourAp
 
 **Lesson learned (Issue-[N] Phase [N], March 2026):** bUnit 2.0.33-preview was required for .NET 10 compatibility. ThemeToggle tests were deferred because `ThemeService` has `InitializeAsync`/`OnChange` event patterns that add fixture complexity beyond the initial bUnit rollout.
 
+### Helper static visibility for test reach (sanctioned pattern)
+
+Helper statics on a Blazor component may widen from `internal` to `public static` when test reach is needed and the helper has no side effects. Rationale: pure helpers are simpler to make public than introducing `InternalsVisibleTo`, which brings ceremony and risks unintended leakage of non-helper internals.
+
+**When this applies:**
+- The helper is `static` and pure (no instance state read, no mutation of static state, no I/O).
+- The helper does formatting, mapping, or style derivation (e.g., `FormatDuration(int)`, `Score()`, `LabelColor()`).
+- A bUnit fixture wants to assert the helper's output directly without rendering the component.
+
+**When this does NOT apply:**
+- The helper has side effects (logging, telemetry, mutating a static cache). Keep it internal and add `InternalsVisibleTo` or refactor.
+- The helper exposes implementation detail that should not be part of the public surface. Refactor to a private + thin public adapter instead.
+
 ## 8.6 MudBlazor Known Patterns
 
 Common MudBlazor gotchas specific to the [YourProject] Blazor WASM project.
