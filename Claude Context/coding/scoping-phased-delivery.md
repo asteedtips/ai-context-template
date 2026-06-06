@@ -292,6 +292,20 @@ Every wave in a plan gets its own GitHub issue before coding starts. The issue s
 - Verify produces a pass/fail artifact
 - Component cannot be marked DONE without passing verification
 
+#### Gate 2.1: Conformance-Results Doc Hard Requirements
+
+When a wave produces a written conformance-results doc (matrix of PASS/FAIL rows per mockup item), every PASS row must satisfy ALL of the following before the wave is marked complete:
+
+- **File:line citation.** Each PASS row cites a specific code line range (e.g., `path/to/file.razor:NN-NN`).
+- **Component-level visual verification.** For any item that describes layout or structure, the row carries either a screenshot diff or an explicit "I ran the app and verified visually" sentence with the route.
+- **Independent review pass.** A Tier 2 or Tier 3 verification agent reads the doc AND the cited code; verdict (CONFIRMED PASS / DISPUTED / NEEDS-EVIDENCE) is recorded per row.
+- **Banned-writing gate** clean on the doc before commit.
+
+The wave issue's Execution Checklist must include "Conformance results doc Tier 2/3 independent review pass" as a distinct item. The wave cannot close while any row is DISPUTED or NEEDS-EVIDENCE.
+
+<!-- CUSTOMIZE: this gate was added after a real wave shipped self-reported PASS rows that
+     a Tier 3 reviewer caught pre-smoke. Replace with your team's equivalent trigger when adopting. -->
+
 ### Gate 3: Local Build and Test Before Push
 
 - Plan references the per-wave execution checklist
