@@ -42,6 +42,26 @@ Framework analyzer warnings (MudBlazor `MUD####`, ASP.NET `BL####`, Razor `RZ###
 <!-- CUSTOMIZE: replace with your project's most expensive analyzer-warning miss. The pattern: a real incident, the exact warning code, the underlying API rename, and the consequence. -->
 **Example incident pattern:** A UI framework's analyzer reported an attribute-name violation across multiple components. The team dismissed it as pre-existing noise because the solution build still succeeded. The warning was the real signal of a major-version API rename. Two consecutive commits shipped a regression that was only caught by manual smoke testing after CI green. The fix was a one-character rename per file. The analyzer had been reporting the answer the whole time.
 
+### 14.1.y Shared Components Discovery Gate
+
+Before writing any new UI component or service that resembles existing functionality, grep the codebase first. Reuse beats reinvent. The trigger words are broad: export, download, date picker, date range, filter, multi-select, modal, dialog, chart, table, drawer, snackbar, tooltip, breadcrumb, pagination, search, toolbar, header, footer, card, badge, chip, icon, loading, skeleton, empty state, error state, alert. Any UI helper, any service helper, any shared concept.
+
+**Required handling when starting a new component or service:**
+
+1. State the function in plain language ("I am about to build a date range picker with presets") so grep terms are obvious.
+2. Grep the repo before writing:
+   - `find {repo} -type f \( -name '*.razor' -o -name '*.cs' -o -name '*.tsx' -o -name '*.vue' \) -not -path '*/obj/*' -not -path '*/bin/*' -not -path '*/node_modules/*' | xargs grep -l '{ConceptName}'`
+   - List the candidate shared-component folders for your stack (for example `{Shared.UI}/Components/`, `{BoundedContext}.UI/Components/`, or your framework's equivalent location).
+   - List any candidate service helper projects for the concept (export, notifications, reporting, etc.).
+   - For third-party libraries: `grep -rln '{LibraryName}' {repo}` against your project files.
+3. Read the existing artifact. Two outcomes:
+   - Reusable as-is or with a small extension: wire to the new caller, extend with new parameters in a backwards-compatible way, ship.
+   - Genuinely needs a new component: document why ("existing X at Y did not fit because Z") in the commit message.
+4. Never assume the concept does not exist yet without grep evidence. "Nobody has built this" is a hypothesis, not a verdict.
+
+<!-- CUSTOMIZE: replace with your project's most expensive missed-reuse incident. The pattern: a real incident, the existing shared component that was missed, the per-page reimplementation that shipped, the retrofit cost. -->
+**Example incident pattern:** A UI wave starts from an approved mockup. The mockup shows a date range picker, an export menu, and a filter chip. The author builds those inline inside the new page. Post-delivery review catches that the date range picker and the export service already existed as shared infrastructure elsewhere in the codebase. A retrofit commit replaces the per-page implementations with the shared components. The whole retrofit was avoidable with a thirty-second grep before the first line of the new page was written. UI waves that start from a mockup are the most common violation site, because the mockup shows the helpers inline and the reflex is to render them per-page.
+
 ## 14.2 What Each Agent Checks
 
 **Code Review Agent (Tier 2 and Tier 3):**
