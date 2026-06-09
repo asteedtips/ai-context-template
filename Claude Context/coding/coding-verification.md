@@ -21,6 +21,27 @@ When Claude is writing or modifying code, it can spin up independent sub-agents 
 
 **How to determine the tier:** The scope is known from the phase plan before any code is written. If there's no phase plan (ad-hoc fix, quick patch), use the file count and change size to classify. When in doubt, round up: a Tier 2 review on a borderline-Tier-1 change costs seconds; missing a real issue costs a correction phase.
 
+**UI Tier 2 requirements.** When a Tier 2 review touches UI (`.razor`, `.razor.cs`, or your framework's equivalent component files), the verification artifact must include BOTH of the following before the work can be marked done, in addition to the code review agent:
+
+1. **Mockup Conformance Hard Gate Step C re-run.** Walk the Component Spec Checklist (produced in Step A) against the actual rendered output, line by line. Record `[OK]` or `[FAIL]` per item in the phase plan. Any `[FAIL]` is blocking.
+2. **Analyzer warning audit.** Run the build, list every distinct framework analyzer warning (for example, MudBlazor `MUD####`, ASP.NET `BL####`, Razor `RZ####`, or your UI framework's equivalent codes) in the output, and resolve each per the Analyzer Warning Discipline rule in 14.1.x. No matching analyzer warning may carry into a closed Tier 2 verification.
+
+Both items are independent of the code review agent. The code review agent reads source; the conformance and analyzer audits read the build output and rendered DOM. All three must pass.
+
+### 14.1.x Analyzer Warning Discipline
+
+Framework analyzer warnings (MudBlazor `MUD####`, ASP.NET `BL####`, Razor `RZ####`, and similar codes from any UI framework you use) are blocking for any Tier 2 UI verification. Treat them as compile errors, not noise, regardless of whether the solution build reports success. The analyzer's job is to surface renamed or removed APIs across framework major versions; ignoring its output is how a working code path silently turns into a broken one.
+
+**Required handling when these warnings appear in a build that touches UI:**
+
+1. List every distinct analyzer code surfaced by the build output (for example, `MUD0002 Illegal Attribute 'IsVisible' on 'MudDialog' using pattern 'LowerCase'`).
+2. For each code, open the framework source in the version control tag matching the project's package version. Compare the attribute name, type, and pattern against the source.
+3. If the analyzer message confirms an API rename or removal, fix the call site before closing the verification step. If the analyzer is wrong (rare), document the disagreement in the verification artifact with a link to the framework source line.
+4. Never dismiss an analyzer warning as "pre-existing" without running steps 1-3 first. "Pre-existing" is a hypothesis, not a verdict.
+
+<!-- CUSTOMIZE: replace with your project's most expensive analyzer-warning miss. The pattern: a real incident, the exact warning code, the underlying API rename, and the consequence. -->
+**Example incident pattern:** A UI framework's analyzer reported an attribute-name violation across multiple components. The team dismissed it as pre-existing noise because the solution build still succeeded. The warning was the real signal of a major-version API rename. Two consecutive commits shipped a regression that was only caught by manual smoke testing after CI green. The fix was a one-character rename per file. The analyzer had been reporting the answer the whole time.
+
 ## 14.2 What Each Agent Checks
 
 **Code Review Agent (Tier 2 and Tier 3):**
