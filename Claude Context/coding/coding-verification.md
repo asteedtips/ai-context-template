@@ -17,7 +17,7 @@ When Claude is writing or modifying code, it can spin up independent sub-agents 
 |------|-------|----------------|
 | **Tier 1: Small** | Single file, <50 lines changed, no UI | No verification agent. Review is built into the primary coding pass. |
 | **Tier 2: Medium** | Multiple files, new service methods, or any UI work | One verification agent after coding is complete. |
-| **Tier 3: Large** | New feature, multi-phase, touches external APIs or database schema | Two verification agents in parallel after each phase milestone. |
+| **Tier 3: Large** | New feature, multi-phase, touches external APIs or database schema | Two verification agents in parallel after each phase milestone, and again, mandatorily, before the PR is opened. Non-optional. |
 
 **How to determine the tier:** The scope is known from the phase plan before any code is written. If there's no phase plan (ad-hoc fix, quick patch), use the file count and change size to classify. When in doubt, round up: a Tier 2 review on a borderline-Tier-1 change costs seconds; missing a real issue costs a correction phase.
 
@@ -111,11 +111,13 @@ Agents run **after coding is complete but before the task or phase is marked don
 
 **Sequence:**
 1. Code the change
-2. Run verification agent(s) based on tier
+2. Run verification agent(s) based on tier. For Tier 3, both parallel agents run here, and they run BEFORE the PR is opened, not after. Post the agent artifact (the pass/fail list from each agent) to the wave or fix issue.
 3. Fix any failures surfaced by agents
 4. Push to `feat/*` branch (triggers CI)
 5. CI validates compilation and tests
 6. Mark phase/task done only after both agent review and CI pass
+
+**Tier 3 verification runs before the PR opens. This is a hard rule, not a preference.** When verification runs after the PR is already open, its findings land as post-hoc review notes instead of pre-merge blockers, and the defects it should have stopped ship anyway. For any Tier 3 change, the two parallel agents must run and their artifact must be posted to the issue before the PR is opened. A PR opened without the Tier 3 artifact already posted is a process gap of the same severity as a missing issue template. Give the agents a harsh, time-pressure-assumed mandate: assume a must-test path was skipped, a shared component was reinvented, and a schema default drifted; no clean bill of health unless it is earned finding by finding. The agents are non-optional for Tier 3 regardless of schedule pressure.
 
 **Fix issues follow the same rules as wave issues.** A bug fix or patch issue that touches multiple files, adds a service method, or modifies UI is Tier 2 by definition. The fix issue checklist must include the Tier 2 agent step just as a wave issue would. "It's just a fix" is not an exemption — the complexity tier is determined by the scope of the change, not the intent.
 

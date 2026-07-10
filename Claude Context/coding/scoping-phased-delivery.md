@@ -24,6 +24,8 @@ Skip the spike when the feature is a well-understood pattern (another CRUD page,
 
 After the spike produces the scoping doc and before bulk implementation begins, one complete vertical slice must run end-to-end against real (or staging) data. The slice covers: UI form submission or trigger, service layer call, external API call with real credentials, response handling, and database persistence.
 
+**Precondition, scoping question bank fully answered (no blanks).** The Vertical Slice Gate cannot pass until the standard question bank in `scoping-decisions-questions.md` is fully answered in the scoping doc, with no blanks or "TBD." A genuinely inapplicable question is marked `N/A` with a one-line reason. The Dry Run question (Integration & External APIs) and the shared-component discovery question (UI & User Experience) must both be answered explicitly.
+
 **What a valid slice proves:**
 - Authentication and authorization work for the external API (token format, scopes, org IDs)
 - The data model can persist and retrieve the output
