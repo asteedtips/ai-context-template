@@ -212,6 +212,27 @@ Use available tools proactively — web search, API calls, file reads — but on
 
 ## Writing Rules
 
+### Documentation Write Gate (mandatory before committing authored docs)
+
+Before committing or pushing any authored `.md` / `.txt` / `.html` deliverable (plan docs, ADRs, runbooks, READMEs, decision logs, any prose file), run both gate helpers and clean every HARD fail first:
+
+```bash
+python3 "Claude Context/helpers/doc_banned_grep.py" path/to/file1.md path/to/file2.md
+python3 "Claude Context/helpers/triad_scan.py"      path/to/file1.md path/to/file2.md
+```
+
+`doc_banned_grep.py` covers Sections 1, 2, and 4 of `banned-writing-styles.md`: vocabulary, phrases, participial padding, and punctuation. HARD fails (exit 1) are the punctuation tells (em dash, en dash, double-hyphen-as-pause) and are non-negotiable. SOFT warnings (exit 2) flag vocabulary for review.
+
+`triad_scan.py` covers the Section 3 structural tells a vocabulary grep cannot see. It gates three-item-construction density and reports sentence-length and paragraph-length coefficient of variation, short-fragment runs, and anaphora runs. Those four are informational only and are never a pass or fail, because gating anaphora fights the author's own voice.
+
+<!-- CUSTOMIZE: the triad thresholds in triad_scan.py are calibrated against the
+     corpus this framework was developed on. Recalibrate them against yours before
+     treating them as settled. See the Calibration note in the Rule of Three section
+     of Claude Context/writing/banned-writing-styles.md. -->
+
+This gate exists because a structural writing rule can be read at session start, acknowledged, and still have no effect on output. Any writing rule without a line in this gate is a rule nobody is checking.
+
+
 **Read `Claude Context/writing/banned-writing-styles.md` at session start. It is the single source of truth for all vocabulary, phrase, and structural writing rules.** Every response must comply. Do not self-amend that file without explicit approval.
 
 ---
