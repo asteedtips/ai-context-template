@@ -324,6 +324,64 @@ All database connections used by AI agents operate under a **read-only policy**.
 
 ---
 
+## Verify Which Cloud Identity You Hold Before Any Write
+
+Your CLI's authenticated identity is per-machine and mutable. Never assume it. Verify before any command that writes, and treat a documented procedure that assumes an identity as a defect waiting to happen.
+
+This matters most when one operator administers more than one organization or tenant. A CLI left pointed at the wrong tenant executes every command successfully, in the wrong directory. Cross-tenant mistakes do not announce themselves, and there is usually no error to notice.
+
+<!-- CUSTOMIZE: Replace with your cloud provider's identity check and switch commands.
+     Azure:  az account show --query "{user:user.name, tenant:tenantId, sub:name}" -o json
+             az login --tenant [TENANT_ID] && az account set --subscription [SUBSCRIPTION_ID]
+     AWS:    aws sts get-caller-identity
+     GCP:    gcloud auth list && gcloud config get-value project
+     Record your expected tenant/account/project ids so a mismatch is obvious at a glance. -->
+
+Two authentication traps worth knowing before you hit them:
+
+- **Conditional Access policies commonly block the device code flow.** The failure message tends to describe a permissions problem ("your sign-in was successful but does not meet the criteria to access this resource") when the policy is actually rejecting the authentication method. Switch to the standard browser flow rather than debugging permissions.
+- **Browser SSO will silently reuse whichever account is already signed in.** Choose the account explicitly. Otherwise you authenticate as the wrong identity while every subsequent command reports success.
+
+Interactive login opens a browser and cannot be driven by an agent, so it is always an escalation to a human operator. Plan procedures around that rather than assuming an agent can re-authenticate itself.
+
+## Role Grants Usually Require a Human, and That Is Correct
+
+Enumerate what your automation identities can actually do, and **write down what none of them can do.** Documentation that lists each principal's permissions but never states the collective ceiling forces the next person to re-derive absence by trial and error.
+
+<!-- CUSTOMIZE: Enumerate your automation principals and record the negative explicitly.
+     Example finding worth stating: "No service principal holds Owner, User Access
+     Administrator, or RBAC Administrator. Role assignment creation always requires a
+     human account holding Owner." -->
+
+**The rule:** when a task needs a permission change your automation identity cannot make, do not hunt for a stronger credential and do not build a workaround. Escalate to a human with the authority, and record the outcome so the next person does not repeat the search.
+
+**Verifying a group-based grant is easy to get wrong.** Do not test it by performing the action as an administrator. An admin usually holds direct rights on the same resource, so success proves nothing about the group. Verify as a member with no direct assignment, and confirm the permission is attributed *via* the group.
+
+Also expect **replication delay** when assigning a role to a freshly created group. The identity may not yet be visible to the authorization system, producing a "principal not found" error that looks like a wrong id. Retry after a short wait before assuming the id is wrong.
+
+## Offboarding: Access Lives in More Than One System
+
+Revoking cloud role assignments is the intuitive step and is materially incomplete. Group-conveyed and application-level access leave no trace on the user's role assignment list, so an assignment-only sweep looks clean while working access remains.
+
+A real case: an offboarded external consultant had all cloud role assignments removed, and retained **production database admin** through group membership plus **production application admin roles** through app role assignments. Neither was visible from the role assignment list.
+
+Run every sweep and verify each returns zero:
+
+1. **Cloud role assignments** on the subscription, project, or account
+2. **Directory group memberships.** Groups frequently convey database admin, secret access, and other privileges with no direct assignment on the user. This is the sweep that gets missed.
+3. **Enterprise application role assignments.** Cloud role removal does not touch these. A user stripped of every infrastructure permission can still sign in to a production application as an admin.
+4. **Directory roles, and the account enabled flag itself**
+
+<!-- CUSTOMIZE: Add the concrete enumeration commands for your identity provider and cloud. -->
+
+Practices that make this safe and reversible:
+
+- **Snapshot to a file before deleting anything.** Assignment ids generally cannot be reconstructed after removal, and the snapshot is what makes the action both reversible and auditable.
+- **Prefer disabling the account over deleting it.** Disabling preserves audit linkage and reverses instantly. Hard deletes typically enter a soft-delete window and then become unrecoverable.
+- **Check for a second authorization surface.** Some secret stores support both role-based access and a separate access policy list. Removing one leaves the other intact.
+- **Treat secret rotation as its own recorded decision.** Anyone who could read a secret store could read everything in it. Whether to rotate after a departure depends on the relationship and any contractual protection. Record the decision either way, so an accepted risk does not later read as an oversight.
+- **Enumerate external and guest identities periodically.** Outside collaborators often authenticate with their own employer's credentials and carry no company email address, so they never surface in a roster-based review. Check specifically whether any of them hold the highest privilege tier.
+
 ## What Never Goes in a File
 
 - Actual token or secret values
