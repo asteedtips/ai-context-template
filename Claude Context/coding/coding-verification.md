@@ -17,9 +17,50 @@ When Claude is writing or modifying code, it can spin up independent sub-agents 
 |------|-------|----------------|
 | **Tier 1: Small** | Single file, <50 lines changed, no UI | No verification agent. Review is built into the primary coding pass. |
 | **Tier 2: Medium** | Multiple files, new service methods, or any UI work | One verification agent after coding is complete. |
-| **Tier 3: Large** | New feature, multi-phase, touches external APIs or database schema | Two verification agents in parallel after each phase milestone. |
+| **Tier 3: Large** | New feature, multi-phase, touches external APIs or database schema | Two verification agents in parallel after each phase milestone, and again, mandatorily, before the PR is opened. Non-optional. |
 
 **How to determine the tier:** The scope is known from the phase plan before any code is written. If there's no phase plan (ad-hoc fix, quick patch), use the file count and change size to classify. When in doubt, round up: a Tier 2 review on a borderline-Tier-1 change costs seconds; missing a real issue costs a correction phase.
+
+**UI Tier 2 requirements.** When a Tier 2 review touches UI (`.razor`, `.razor.cs`, or your framework's equivalent component files), the verification artifact must include BOTH of the following before the work can be marked done, in addition to the code review agent:
+
+1. **Mockup Conformance Hard Gate Step C re-run.** Walk the Component Spec Checklist (produced in Step A) against the actual rendered output, line by line. Record `[OK]` or `[FAIL]` per item in the phase plan. Any `[FAIL]` is blocking.
+2. **Analyzer warning audit.** Run the build, list every distinct framework analyzer warning (for example, MudBlazor `MUD####`, ASP.NET `BL####`, Razor `RZ####`, or your UI framework's equivalent codes) in the output, and resolve each per the Analyzer Warning Discipline rule in 14.1.x. No matching analyzer warning may carry into a closed Tier 2 verification.
+
+Both items are independent of the code review agent. The code review agent reads source; the conformance and analyzer audits read the build output and rendered DOM. All three must pass.
+
+### 14.1.x Analyzer Warning Discipline
+
+Framework analyzer warnings (MudBlazor `MUD####`, ASP.NET `BL####`, Razor `RZ####`, and similar codes from any UI framework you use) are blocking for any Tier 2 UI verification. Treat them as compile errors, not noise, regardless of whether the solution build reports success. The analyzer's job is to surface renamed or removed APIs across framework major versions; ignoring its output is how a working code path silently turns into a broken one.
+
+**Required handling when these warnings appear in a build that touches UI:**
+
+1. List every distinct analyzer code surfaced by the build output (for example, `MUD0002 Illegal Attribute 'IsVisible' on 'MudDialog' using pattern 'LowerCase'`).
+2. For each code, open the framework source in the version control tag matching the project's package version. Compare the attribute name, type, and pattern against the source.
+3. If the analyzer message confirms an API rename or removal, fix the call site before closing the verification step. If the analyzer is wrong (rare), document the disagreement in the verification artifact with a link to the framework source line.
+4. Never dismiss an analyzer warning as "pre-existing" without running steps 1-3 first. "Pre-existing" is a hypothesis, not a verdict.
+
+<!-- CUSTOMIZE: replace with your project's most expensive analyzer-warning miss. The pattern: a real incident, the exact warning code, the underlying API rename, and the consequence. -->
+**Example incident pattern:** A UI framework's analyzer reported an attribute-name violation across multiple components. The team dismissed it as pre-existing noise because the solution build still succeeded. The warning was the real signal of a major-version API rename. Two consecutive commits shipped a regression that was only caught by manual smoke testing after CI green. The fix was a one-character rename per file. The analyzer had been reporting the answer the whole time.
+
+### 14.1.y Shared Components Discovery Gate
+
+Before writing any new UI component or service that resembles existing functionality, grep the codebase first. Reuse beats reinvent. The trigger words are broad: export, download, date picker, date range, filter, multi-select, modal, dialog, chart, table, drawer, snackbar, tooltip, breadcrumb, pagination, search, toolbar, header, footer, card, badge, chip, icon, loading, skeleton, empty state, error state, alert. Any UI helper, any service helper, any shared concept.
+
+**Required handling when starting a new component or service:**
+
+1. State the function in plain language ("I am about to build a date range picker with presets") so grep terms are obvious.
+2. Grep the repo before writing:
+   - `find {repo} -type f \( -name '*.razor' -o -name '*.cs' -o -name '*.tsx' -o -name '*.vue' \) -not -path '*/obj/*' -not -path '*/bin/*' -not -path '*/node_modules/*' | xargs grep -l '{ConceptName}'`
+   - List the candidate shared-component folders for your stack (for example `{Shared.UI}/Components/`, `{BoundedContext}.UI/Components/`, or your framework's equivalent location).
+   - List any candidate service helper projects for the concept (export, notifications, reporting, etc.).
+   - For third-party libraries: `grep -rln '{LibraryName}' {repo}` against your project files.
+3. Read the existing artifact. Two outcomes:
+   - Reusable as-is or with a small extension: wire to the new caller, extend with new parameters in a backwards-compatible way, ship.
+   - Genuinely needs a new component: document why ("existing X at Y did not fit because Z") in the commit message.
+4. Never assume the concept does not exist yet without grep evidence. "Nobody has built this" is a hypothesis, not a verdict.
+
+<!-- CUSTOMIZE: replace with your project's most expensive missed-reuse incident. The pattern: a real incident, the existing shared component that was missed, the per-page reimplementation that shipped, the retrofit cost. -->
+**Example incident pattern:** A UI wave starts from an approved mockup. The mockup shows a date range picker, an export menu, and a filter chip. The author builds those inline inside the new page. Post-delivery review catches that the date range picker and the export service already existed as shared infrastructure elsewhere in the codebase. A retrofit commit replaces the per-page implementations with the shared components. The whole retrofit was avoidable with a thirty-second grep before the first line of the new page was written. UI waves that start from a mockup are the most common violation site, because the mockup shows the helpers inline and the reflex is to render them per-page.
 
 ## 14.2 What Each Agent Checks
 
@@ -70,11 +111,13 @@ Agents run **after coding is complete but before the task or phase is marked don
 
 **Sequence:**
 1. Code the change
-2. Run verification agent(s) based on tier
+2. Run verification agent(s) based on tier. For Tier 3, both parallel agents run here, and they run BEFORE the PR is opened, not after. Post the agent artifact (the pass/fail list from each agent) to the wave or fix issue.
 3. Fix any failures surfaced by agents
 4. Push to `feat/*` branch (triggers CI)
 5. CI validates compilation and tests
 6. Mark phase/task done only after both agent review and CI pass
+
+**Tier 3 verification runs before the PR opens. This is a hard rule, not a preference.** When verification runs after the PR is already open, its findings land as post-hoc review notes instead of pre-merge blockers, and the defects it should have stopped ship anyway. For any Tier 3 change, the two parallel agents must run and their artifact must be posted to the issue before the PR is opened. A PR opened without the Tier 3 artifact already posted is a process gap of the same severity as a missing issue template. Give the agents a harsh, time-pressure-assumed mandate: assume a must-test path was skipped, a shared component was reinvented, and a schema default drifted; no clean bill of health unless it is earned finding by finding. The agents are non-optional for Tier 3 regardless of schedule pressure.
 
 **Fix issues follow the same rules as wave issues.** A bug fix or patch issue that touches multiple files, adds a service method, or modifies UI is Tier 2 by definition. The fix issue checklist must include the Tier 2 agent step just as a wave issue would. "It's just a fix" is not an exemption — the complexity tier is determined by the scope of the change, not the intent.
 

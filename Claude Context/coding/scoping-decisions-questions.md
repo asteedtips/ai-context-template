@@ -44,6 +44,8 @@ Any question where the answer changes what code gets written:
 
 Not all questions apply to every project. Run through this list and answer the ones that do.
 
+> **Gating rule:** The question bank is a required, fully-answered section of the scoping doc. Every applicable question must have a written answer before the Vertical Slice Gate (see `scoping-phased-delivery.md`) can pass. No blanks, no "TBD," no "decide later." A question that genuinely does not apply is marked `N/A` with a one-line reason, and that counts as answered. Two questions are non-negotiable on every project because both get skipped under time pressure and each one, when skipped, tends to produce a rework-grade defect: (1) the Dry Run question under Integration & External APIs (a production write with no test or sandbox path), and (2) the shared-component discovery question under UI & User Experience (a reinvented component that already existed).
+
 ### Architecture & Hosting
 
 - Where does this code live in the solution? New bounded context or extension of existing?
@@ -87,6 +89,7 @@ Not all questions apply to every project. Run through this list and answer the o
 - How do users discover this feature? Navigation changes, feature flags, new routes?
 - What's the notification model? In-app, push, email, combination?
 - **What's the expected data scale for list/selection controls?** If lists could exceed ~20-30 items, use a searchable component instead of a static dropdown. This is a scoping decision.
+- **What existing shared component or service covers this, and if none, why does a new one need to be built?** Before scoping any grid, table, export, download, date picker, filter, dialog, chart, or similar surface, grep the codebase for an existing implementation. Record the answer as either "reuse existing X at Y" or "new component required because existing X at Y did not fit due to Z." A blank here is a scoping miss, not a late UI detail. This question is mandatory on every project (see the gating rule above).
 
 ### Testing & Quality
 

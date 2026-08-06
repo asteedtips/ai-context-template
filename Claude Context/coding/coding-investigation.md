@@ -292,6 +292,48 @@ print("Script written — run via Desktop Commander")
 
 ---
 
+## Phase 4.5 — Audit-Trail Dual-Identity Walkthrough
+
+When an app authenticates users with one identity provider (the session principal) and also carries a second identity inline on the data itself (call-data principal, document author, originating user, etc.), audit-trail bugs usually trace back to a write path that recorded the wrong one. The actor stored against the row is the call's terminating agent, the document author, or the originating user — not the human who clicked Confirm.
+
+Two principals are in play:
+
+- **Data-borne identity.** Carried on the record itself: e.g., `Cdr.AgentUser`, `Commitment.OriginatorUpn`, `Activity.CreatedBy`. Built from the source system claims (telephony provider, upstream integration). Used by read surfaces and filters scoped to the record's owner.
+- **Session identity.** Carried on the request principal: `HttpContext.User` populated by the app's primary auth scheme (OIDC, AAD, Okta, whatever the app uses to sign humans in). Used by every write that records "who clicked the button".
+
+The two never overlap by design but read interchangeably at a glance in code review.
+
+### Claim mapping cheat sheet (template)
+
+| What you want | Data-borne path | Session path |
+|---|---|---|
+| Record's source actor | `record.OwnerUpn` (data provider id) | n/a |
+| Current signed-in user (write actor) | n/a | `httpContext.User.FindFirst("preferred_username")?.Value` (OIDC) or your provider's UPN claim |
+| Scope / role on the record | data-provider scope claim | session-provider group/role claim |
+
+### Investigation pattern
+
+When an audit row names the wrong actor:
+
+1. **Identify the audit-event source.** Find the row's `CreatedBy` / `Actor` / `User` column directly. That is the recorded actor.
+2. **Trace the call site that wrote it.** Grep the write method's consumers across the codebase. Each call site resolves an actor; the bug usually lives in that resolution.
+3. **Check which provider the call site reads from.** A correct write actor MUST come from the session principal (`AuthStateProvider.GetAuthenticationStateAsync()` plus the relevant UPN claim). If the call site reads from a data-borne field or from a view-model property that originated on the data side, the actor will be the record's owner, not the human who clicked.
+4. **Verify the test fixture matches.** Tests that exercise write paths must seed a fake session principal with the expected UPN. If the fixture forgets, the production code falls through its claim chain to a default (often `"anonymous"`) and you'll see that in the audit row.
+
+### Worked example (drawer write path — template)
+
+A typical drawer pattern: `GetCurrentUserUpnAsync` reads `preferred_username` first, falls back to `ClaimTypes.Upn`, then to `upn`, then to `user.Identity?.Name`, then to the literal `"anonymous"`. Every write call passes that resolved UPN through to the service layer. The drawer therefore records the signed-in user, not the record's owner, even when both surfaces are showing data for the same record.
+
+Sibling pages (inline editors on a list page, mini-dialogs in side panels) should follow the same pattern with their own helper. All paths should converge on the same claim chain so the audit trail stays consistent regardless of where the user clicked.
+
+### Common bug shapes to look for
+
+- **Write path uses a data-borne field as the actor.** Always wrong; the record's owner and the clicker are different people. Replace with the session UPN resolution.
+- **Write path uses a data-provider scope claim as the actor.** Scope is for authorization decisions, not actor identity. Same fix.
+- **Test fixture forgot to seed the session principal.** The write helper falls through to `"anonymous"`. If a production stack trace shows that, the bug is upstream of the write path; the principal was never authenticated.
+
+---
+
 ## Phase 5 — Code Tracing
 
 With real data from Phases 2–4, trace the code path the failure traveled.
