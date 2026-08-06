@@ -44,7 +44,7 @@ tags: [coding, moc, index]
 
 ## Blazor / UI
 
-**`coding-blazor-ui.md`** — Component patterns (200-line limit, code-behind), CSS class builders, new routable page checklist (DI, nav entry, SharedNavigator, auth/layout, both platforms), page header consistency, dialog/form validation checklist, state management, error boundaries, mockup conformance hard gate (Extract → Build → Verify), MudBlazor gotchas (CS1660, `@using` collision), three-state filter pattern, SharedComponents layer check (MAUI reuse), bUnit testing. **Read when:** building any Blazor page or component, working with MudBlazor, verifying against mockups.
+**`coding-blazor-ui.md`** — Component patterns (200-line limit, code-behind), CSS class builders, new routable page checklist (DI, nav entry, SharedNavigator, auth/layout, both platforms), page header consistency, dialog/form validation checklist, state management, error boundaries, mockup conformance hard gate (Extract → Build → Verify), Section 8.4.1 static reproduction method for visual/CSS bugs (build a real page from the actual compiled CSS and check it in a headless browser, including reading the parsed CSSOM, when no live authenticated environment is reachable), MudBlazor gotchas (CS1660, `@using` collision), three-state filter pattern, SharedComponents layer check (MAUI reuse), bUnit testing. **Read when:** building any Blazor page or component, working with MudBlazor, verifying against mockups, or investigating any reported visual/layout bug.
 
 ## CI/CD
 

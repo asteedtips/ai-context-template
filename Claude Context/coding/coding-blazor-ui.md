@@ -1,7 +1,7 @@
 ---
 type: context-file
 parent: "`coding-index.md`"
-summary: "Blazor component patterns, CSS builders, new page checklist, header consistency, dialog validation, state management, error boundaries, mockup conformance (Extract-Build-Verify hard gate), MudBlazor gotchas, three-state filter pattern, SharedComponents layer check, and bUnit testing."
+summary: "Blazor component patterns, CSS builders, new page checklist, header consistency, dialog validation, state management, error boundaries, mockup conformance (Extract-Build-Verify hard gate), static reproduction for visual/CSS bugs with no live environment, MudBlazor gotchas, three-state filter pattern, SharedComponents layer check, and bUnit testing."
 tags: [coding, blazor, ui, mudblazor, mockup-conformance, bunit]
 ---
 
@@ -329,6 +329,28 @@ The Extract step is the first item. The Verify step comes after all implementati
 **a prior project (March 2026):** Phase [N] added two thread list pages without referencing the approved `HAF-Chat-Mockups.html`. Tyler's Round 3 review flagged 8 issues, all of which the mockup already addressed (layout directive, gym selector, FAB for new thread, back header, page titles, MaxWidth). Phase [N] fixed all 8 by building to the mockup spec. Root cause: Phase [N] was created reactively and skipped the Extract step entirely. The mockup was never opened. Every fix in Phase [N] was building what the mockup already showed. This is why the Extract → Build → Verify gate exists: it catches at build time what would otherwise surface as reviewer feedback.
 
 **a prior project Phase [N] (March 2026):** Phase [N] mockup was created and approved during the planning conversation, but the file was saved to [YourWorkspace] root instead of `docs/Issue-[N]-Facility-Chat/`. Implementation proceeded and all CI was green, but the mockup wasn't a committed project artifact. Discovered post-implementation; required a separate cleanup commit (`37b19998`) and a PR comment update. Root cause: no rule required committing the mockup to the feature branch before waves started. Fix: added "Mockup commit is part of approval" rule above.
+
+## 8.4.1 Static Reproduction for Visual/CSS Bugs (No Live Environment Needed)
+
+When a visual or layout bug is reported (a PR review comment, a bug ticket, a "this looks wrong") and there is no reachable authenticated dev environment to click through, do not diagnose from reading CSS or Razor markup by eye. Build a real, static reproduction and check it in an actual browser. This applies to any MudBlazor Blazor project.
+
+**Why this beats reading the code:** CSS cascade bugs (wrong load order, an accidentally early-closed comment, a class collision between the component library's own utility classes and a hand-rolled utilities shim) are invisible to a text read. They only show up once a real browser parses the real files in the real order. First used on a Blazor project's Bootstrap-removal PR: a reviewer reported a list-and-detail panel stacking instead of sitting side by side. Reading the CSS shim by eye looked fine. Loading the real file into a browser and reading the parsed `document.styleSheets` showed an entire `@media` block silently missing, because a comment two lines above it contained the literal two-character sequence that closes a CSS comment, buried in the middle of a sentence. No amount of re-reading the source would have surfaced that; the browser's own parser had to be asked directly.
+
+**The trigger prompt** (paste this into any session working on a UI/CSS bug):
+
+> Reproduce this visually before proposing a fix. Pull the real compiled CSS and static assets the page actually loads (the component library's compiled CSS from the local NuGet cache, the repo's own wwwroot CSS, any theme CSS), stage them wherever the build environment can reach them, and build a minimal static HTML page using the exact `Class=` attributes from the real `.razor` markup, in the same `<link>` order as the app's layout file. Serve it with a local HTTP server, not `file://` (file URLs block CSSOM access in Chromium). Check it with headless Chromium via Playwright: take a screenshot, and also read `document.styleSheets` and `getComputedStyle` directly, so you see not just what renders but why. Use this whenever a live dev environment or an authenticated running instance is not reachable, instead of guessing from reading CSS text alone.
+
+**Procedure:**
+
+1. **Get the real CSS assets.** The component library's own compiled CSS lives in the local NuGet cache (e.g. `~/.nuget/packages/mudblazor/{version}/staticwebassets/MudBlazor.min.css`, matched to the exact version pinned in the repo's `.csproj`, not assumed). The repo's own CSS lives in `wwwroot/`. Confirm both directly; never assume a version or a path.
+2. **Check the real `<link>` order.** Grep the app's root layout file (`App.razor`, `_Layout.cshtml`) for `.css"` to get the exact stylesheet load order. Cascade winners depend on this order when two rules share specificity and `!important`; reproducing the wrong order can hide or fabricate a bug.
+3. **Stage the files somewhere the build/test environment can reach them.** If re-staging an edited file to the same destination filename, use a new filename each time (e.g. append `-v2`); staging layers have been observed to serve a stale cached copy when overwriting the same path, even when the tool reports the new byte count.
+4. **Build the reproduction with real classes, not guessed ones.** Copy the literal `Class=` string from the `.razor` file for each element. For the base classes a component contributes on top of that (e.g. does `MudContainer` default to `display:flex` or `display:block`? does `MudCard` default to a flex column?), grep the real compiled CSS for the component's known root class (`.mud-container`, `.mud-card`, `.mud-paper`, `.mud-list-item`, and so on) rather than assuming. Getting a component's default display/flex behavior wrong will produce a reproduction that looks right for the wrong reason.
+5. **Serve over HTTP, not `file://`.** `python3 -m http.server`, then navigate Playwright to `http://localhost:{port}/...`. Chromium blocks CSSOM access (`sheet.cssRules`) with a `SecurityError` on `file://` origins; this silently breaks step 6 below without breaking the screenshot, so a `file://` test can look successful while telling you nothing about why.
+6. **Check both the screenshot and the parsed CSSOM.** A screenshot confirms the symptom. Reading `document.styleSheets` (walking into any `CSSMediaRule.cssRules`) confirms or refutes a specific rule's existence and computed order, which is what actually explains a cascade bug. Compare the count of rules you expect (from the source file) against the count the browser actually parsed; a mismatch means something upstream of your fix is silently dropping rules.
+7. **Verify the fix the same way.** Re-stage the corrected file (new filename per step 3), re-check the CSSOM count and the specific rule, then re-screenshot. Do not consider the bug fixed on a screenshot alone if the CSSOM check is what originally found it.
+
+**Gotcha: do not quote the broken syntax verbatim when writing up a comment-based CSS bug.** If the bug is an accidentally early-closed comment, describing it by literally re-typing the offending character sequence inside a new comment reproduces the exact same bug in the new comment. Describe it in prose (spell out the characters, e.g. "a star immediately followed by a slash") instead of pasting the literal sequence.
 
 ## 8.5 bUnit Component Testing
 
