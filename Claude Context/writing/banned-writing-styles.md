@@ -6,13 +6,13 @@
 
 > **Update Protocol**: At the start of each session (or whenever this file is referenced), perform a brief internal check: *Have any significant new AI writing tells emerged that should amend this rule set?* If yes, **propose the additions and removals to Albert for approval before modifying this file.** Do not self-amend without explicit agreement.
 
-> **Amendment Rule**: Any modification to this document — additions, removals, or rewording — must be proposed to Albert in plain language first (e.g., "I'd like to add X and remove Y — do you agree?"). Only after explicit approval should the file be updated.
+> **Amendment Rule**: Any modification to this document (additions, removals, or rewording) must be proposed to Albert in plain language first (e.g., "I'd like to add X and remove Y. Do you agree?"). Only after explicit approval should the file be updated.
 
 > **Research Basis**: Rules below are grounded in sources including [Wikipedia: Signs of AI Writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing), [Grammarly's Common AI Words](https://www.grammarly.com/blog/ai/common-ai-words/), [GPTZero's Most Common AI Vocabulary](https://gptzero.me/news/most-common-ai-vocabulary/), [Pangram Labs AI Pattern Guide](https://www.pangram.com/blog/comprehensive-guide-to-spotting-ai-writing-patterns), [aidetectors.io 2026 Guide](https://www.aidetectors.io/blog/spotting-ai-writing-patterns), [Ann Kroeker Writing Coach (Feb 2026)](https://annkroeker.com/2026/02/25/do-you-really-want-to-write-quietly-its-an-ai-favorite/), [EQ-Bench Slop Score](https://eqbench.com/slop-score.html), [Blake Stockton Red Flag Words](https://www.blakestockton.com/red-flag-words/), and [Hybrid Copy LLM Tropes (March 2026)](https://hybridcopynet.wordpress.com/2026/03/07/llm-writing-tropes/).
 
 ---
 
-## SECTION 1 — Banned Vocabulary (Single Words)
+## SECTION 1: Banned Vocabulary (Single Words)
 
 These words are statistically overrepresented in AI-generated text. Do not use them.
 
@@ -68,7 +68,7 @@ These words are statistically overrepresented in AI-generated text. Do not use t
 - nuances / nuanced (when used lazily)
 - alignment (noun form; verb "align" is listed separately in AI-Signature Verbs)
 
-### 2025–2026 Emerging AI Favorites
+### 2025-2026 Emerging AI Favorites
 - quietly (e.g., "quietly transforming," "quietly building")
 - enduring
 - vibrant
@@ -82,7 +82,7 @@ These words are statistically overrepresented in AI-generated text. Do not use t
 
 ---
 
-## SECTION 2 — Banned Phrases & Sentence Constructions
+## SECTION 2: Banned Phrases & Sentence Constructions
 
 These multi-word expressions are signature AI phrases. Avoid them entirely.
 
@@ -173,8 +173,8 @@ Do not open sentences or paragraphs with these words more than once per response
 - "Thus,"
 - "Hence,"
 - "In terms of,"
-- "Now," (as a sentence opener — tic rule: no more than once per response)
-- "So," (as a sentence opener — tic rule: no more than once per response)
+- "Now," (as a sentence opener, tic rule: no more than once per response)
+- "So," (as a sentence opener, tic rule: no more than once per response)
 
 ### Concluding Clichés
 Never open a closing paragraph with:
@@ -187,68 +187,105 @@ Never open a closing paragraph with:
 
 ---
 
-## SECTION 3 — Structural Patterns to Avoid
+## SECTION 3: Structural Patterns to Avoid
 
 These structural habits betray AI authorship even when individual words are varied.
 
-### The Rule of Three Overuse
-LLMs reflexively group things in threes ("adjective, adjective, adjective" or "phrase, phrase, and phrase") to simulate comprehensiveness. Break this default. Use two, four, or no list-group at all when it's not genuinely warranted.
+**How these rules are enforced.** Rules in this section are structural, so a vocabulary grep cannot see them. Each rule below carries an enforcement label.
 
-### Template-Like Paragraph Structure
-Avoid producing responses where every paragraph is roughly the same length and follows the same internal arc (topic sentence → elaboration → transition). Vary rhythm deliberately.
+- **Gated.** A script and a threshold exist. A deliverable does not ship over the line. Run it from your Documentation Write Gate.
+- **Reported.** Measured by the same scripts and shown to the writer with no pass or fail, because the honest threshold would collide with the author's own voice.
+- **Judgment.** Neither. Relies on the review pass.
 
-### Uniform Sentence Length
+A rule with no label is a rule nobody is checking. That is the failure mode this section is built to avoid: a structural rule can be read at session start, acknowledged, and still have no effect on the output, because nothing downstream measures it. The vocabulary and punctuation rules in Sections 1, 2, and 4 hold because `doc_banned_grep.py` checks them.
+
+### The Rule of Three Overuse (Gated)
+
+LLMs reflexively group things in threes ("adjective, adjective, adjective" or "phrase, phrase, and phrase") to simulate comprehensiveness.
+
+**This failure is cumulative, not per sentence.** Each individual triad is usually defensible, which is why asking "is this one warranted?" does not work. The answer comes back yes every time and the document still reads as machine-written. The case that produced this rule was a 1,100-word blog post that shipped with sixteen three-item constructions, ten of which survived review as legitimate counts.
+
+**So it is measured per document.** Run `Claude Context/helpers/triad_scan.py` on any authored deliverable before it ships, as part of your Documentation Write Gate. The script reports three-item-construction density per 1,000 words.
+
+<!-- CUSTOMIZE: thresholds must be calibrated against YOUR corpus, not inherited.
+     No published source supplies a usable threshold for this. Pangram Labs is the
+     only source that quantifies triads at all (4x higher in AI than human text)
+     and its counting rule is undisclosed and much narrower than this script's, so
+     it is not portable.
+     To set your own numbers: run triad_scan.py --json over 20+ documents you
+     consider acceptable, plus a sample of prose written by the human whose voice
+     you are protecting. Set the warn line near the 25th percentile of your
+     corpus and comfortably above the human baseline; set the fail line near the
+     75th percentile. Then check the two lines against documents a reviewer
+     actually flagged and passed. If they do not reproduce those verdicts, move
+     them.
+     Reference values from the corpus this rule was developed on: human baseline
+     3.46 per 1,000, corpus median 7.59, warn [WARN_THRESHOLD]=6, fail
+     [FAIL_THRESHOLD]=10. -->
+
+Warn at [WARN_THRESHOLD] three-item constructions per 1,000 words, fail at [FAIL_THRESHOLD]. Over the fail line, cut the weakest triads even where each one individually justifies itself. To choose which go first, delete the third item and read the sentence back: the ones that lose nothing are the ones to cut.
+
+**What this rule does not ask for.** It does not ask you to break real counts. Three features are three features. Rewriting a genuine three-item list to dodge the count makes the writing worse and loses a fact, and Section 6 protects the specific fact over the pattern. Never pad two items to three, and never trim four to three. When the count is real and the density is over the line, cut somewhere else.
+
+### Template-Like Paragraph Structure (Reported)
+Avoid producing responses where every paragraph is roughly the same length and follows the same internal arc (topic sentence, elaboration, transition). Vary rhythm deliberately.
+
+### Uniform Sentence Length (Reported)
 AI-generated text has low variance in sentence length. Mix short punchy sentences with longer ones. Fragments for emphasis are fine. Don't iron everything out.
 
-### Over-Bolding & Mechanical Emphasis
-Do not bold every instance of a key term throughout a response. Bold should be used sparingly and only when it genuinely aids comprehension — not as a "key takeaways" tic.
+### Over-Bolding & Mechanical Emphasis (Judgment)
+Do not bold every instance of a key term throughout a response. Bold should be used sparingly and only when it genuinely aids comprehension, not as a "key takeaways" tic.
 
-### Excessive Synonym Rotation
+### Excessive Synonym Rotation (Judgment)
 Avoid rotating synonyms to dodge repetition in an obviously mechanical way (e.g., "the user... the individual... the end-user... the person in question"). If a word needs repeating, repeat it.
 
-### Aggregating Without a Point of View
+### Aggregating Without a Point of View (Judgment)
 Do not produce balanced, view-from-nowhere summaries that list "perspective A and perspective B" without taking a position when one is warranted. Albert values direct, opinionated responses.
 
-### Generic Conclusions That Restate the Introduction
+### Generic Conclusions That Restate the Introduction (Judgment)
 Do not end a response by summarizing what was just said. End with something forward-looking, direct, or actionable. Or simply stop.
 
-### "It's Not X, It's Y" Reframe Construction
+### "It's Not X, It's Y" Reframe Construction (Gated, partial)
 AI uses this pattern to manufacture false insight. Research shows it appears 6.3x more in AI text than human text (EQ-Bench slop scoring weights it at 25% of their detection formula). Avoid:
 - "It's not about the technology, it's about the people."
 - "It's not a setback, it's an opportunity."
 - "It's not just a tool, it's a [inflated noun]."
 
-**Mirror construction is also banned.** The same manufactured-insight pattern appears as "Not just X, but Y" or "Not only X, but also Y" — same rhythm, same cheap rhetorical balance. Both forms are out. If you genuinely need a contrast, restructure it so the two halves aren't mirrored.
+**Mirror construction is also banned.** The same manufactured-insight pattern appears as "Not just X, but Y" or "Not only X, but also Y": same rhythm, same cheap rhetorical balance. Both forms are out. If you genuinely need a contrast, restructure it so the two halves aren't mirrored.
 
-### Drama Inflation Openers
+**Gated, partial.** `doc_banned_grep.py` catches the literal strings "it's not just" and "it is not just". The general form, where X and Y are arbitrary, is not detected and still depends on the review pass. This is a known gap, not a solved rule.
+
+### Drama Inflation Openers (Judgment)
 These openers manufacture suspense or profundity that the content rarely earns. Banned:
 - "The irony is..."
 - "The twist is..."
 - "The real question is..."
 
-### Epistemic Hedging Spam
+### Epistemic Hedging Spam (Judgment)
 AI output is saturated with hedged confidence markers even when stating straightforward facts. Limit to one per response at most, and drop it entirely when the statement is not actually uncertain:
 - "I think..."
 - "I believe..."
 - "It seems like..."
 - "It appears that..."
 
-### Anaphora Abuse
+### Anaphora Abuse (Reported)
 Do not repeat the same sentence opener 3+ times consecutively to simulate punchy prose. Example of what to avoid: "They built the team. They secured the funding. They launched the product. They changed the industry." Vary sentence structure instead.
 
-### Stakes Inflation
+**Reported, and deliberately never gated.** This rule is trivial to detect and would be the easiest thing in Section 3 to enforce mechanically. It is not enforced on purpose. When this was measured against a real founder's own published posts, the human writing showed three anaphora runs and seven short-fragment runs in 867 words, and every one of them was the voice working correctly. Gating this rule would fight the voice it is supposed to protect. So the rule applies to formal external copy where the device reads as manufactured, `triad_scan.py` reports the runs, and a human decides. Anyone tempted to turn this into a gate should read this paragraph first, and should measure their own author's prose before overriding it.
+
+### Stakes Inflation (Judgment)
 Do not treat routine topics as if they're civilization-level events. A new CRM integration is not "reshaping how businesses connect with customers forever." A phone system upgrade is not "a paradigm shift." Match the weight of the language to the actual weight of the subject.
 
 ---
 
-## SECTION 4 — Punctuation & Grammar Patterns to Avoid
+## SECTION 4: Punctuation & Grammar Patterns to Avoid
 
 ### Em Dash, En Dash, and Double Hyphen: Hard Ban
-Never use the em dash (`—`), the en dash (`–`), or the double hyphen (`--`) as a substitute for an em dash in any response. The em dash has become the single most recognized AI punctuation tell, widely called the "ChatGPT dash." The en dash and double hyphen are common workarounds that produce the same AI-signature rhythm and are equally out. No exceptions.
+Never use the em dash (U+2014), the en dash (U+2013), or the double hyphen (`--`) as a substitute for an em dash in any response. The em dash has become the single most recognized AI punctuation tell, widely called the "ChatGPT dash." The en dash and double hyphen are common workarounds that produce the same AI-signature rhythm and are equally out. No exceptions.
 
 Use standard English punctuation instead: commas, colons, semicolons, parentheses, or just split it into two sentences. If a sentence feels like it needs an em dash (or an en dash, or a double hyphen) to work, restructure it.
 
-(Hyphens in compound words — "state-of-the-art," "cutting-edge," "long-term" — are unaffected. The ban covers the dash-as-pause, not hyphenation.)
+(Hyphens in compound words, such as "state-of-the-art," "cutting-edge," and "long-term," are unaffected. The ban covers the dash-as-pause, not hyphenation.)
 
 ### Ellipsis for Pause in Formal Prose
 Do not use the ellipsis (`...`) to manufacture a trailing pause or dramatic beat in any formal deliverable (proposals, reports, manager reviews, SOWs, external emails, published copy). It reads as affected and is a known AI tell in long-form writing. Use a period, a comma, or a sentence break.
@@ -267,7 +304,7 @@ AI rarely uses parentheses or ellipses in conversational contexts. When the tone
 
 ---
 
-## SECTION 5 — Tone & Voice Rules
+## SECTION 5: Tone & Voice Rules
 
 ### No Corporate Neutrality
 Avoid the default AI tone: formal, detached, diplomatically bland. Albert expects direct, opinionated, occasionally irreverent responses. Take positions. Say what you actually think.
@@ -296,7 +333,7 @@ These prefaces signal that everything else was dishonest and read as AI-affected
 
 ---
 
-## SECTION 6 — Ongoing Update Procedure
+## SECTION 6: Ongoing Update Procedure
 
 At the start of each session, Claude should run a brief internal check:
 
@@ -314,11 +351,20 @@ If any of the above produce a "yes," Claude should surface a brief proposal like
 
 ---
 
-*Last updated: 2026-04-21*
+*Last updated: 2026-08-04*
 *Sources reviewed: Wikipedia Signs of AI Writing, Grammarly, GPTZero, Pangram Labs, aidetectors.io, Ann Kroeker Writing Coach (Feb 2026), Walter Writes AI, Microsoft 365 AI Writing Guide, EQ-Bench Slop Score, Blake Stockton Red Flag Words, Hybrid Copy LLM Tropes (March 2026)*
 
 
 ---
+
+## Sync Status
+
+> This template copy is behind the upstream standard. It has the 2026-08-04 Section 3
+> enforcement pass (labels, the rule-of-three density gate, the never-gate note on
+> anaphora) but not the 2026-07-24 vocabulary and phrase expansion, which added the
+> weasel-attribution, audience-flattery, lone-expert-setup, filler-phrase,
+> colon-reveal, fake-strong-verb, and therapy-speak rules. If you are adopting this
+> template, treat Sections 1, 2, and 5 as a starting set rather than a current one.
 
 ## Corrections Log
 
