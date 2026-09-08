@@ -168,27 +168,6 @@ Every plan should include a "Phase Results" section that gets filled in after ea
 
 ---
 
-## 8d. Per-Wave Execution Checklist — The 7-Step Loop
-
-This section defines the gate sequence for executing each phase to completion.
-
-### Per-Phase Gate Sequence
-
-After all projects within a phase pass their individual compile-run-fix gates, run the phase-level gates:
-
-1. **CI gate:** Push to GitHub. GitHub Actions runs the full build and test suite. All tests must pass.
-2. **Fix any CI failures:** If regressions appear, fix locally and push again.
-3. **Update the plan:** Record actual results, deviations, and CI run number for the audit trail. Do this in the same session.
-4. **Phase commit:** Final commit updating the plan with phase results and CI reference.
-
-### Phase Results Section
-
-Every plan includes a "Phase Results" section filled in after each phase completes. Record: completion date, test count vs estimate, commit hash, deviations, and issues affecting later phases.
-
-This section is the ground truth for cross-session continuity.
-
----
-
 ## 8d. Per-Wave Execution Checklist
 
 This is the mandatory execution loop for every wave in any plan. It runs automatically after the wave's code work is complete.
@@ -368,4 +347,5 @@ When a wave is marked complete and ready for user-facing verification, apply the
 
 | Date | What Failed | Root Cause | Fix Applied |
 |------|-------------|------------|-------------|
+| 2026-09-08 | Two headings both numbered "## 8d." existed in this file: a short 20-line section duplicating 8c's own "Per-Phase Gate Sequence" and "Phase Results Section" content nearly verbatim under a mismatched title ("The 7-Step Loop"), followed immediately by the real 7-step-loop section, also numbered 8d | A copy-paste artifact left a stray near-duplicate of section 8c's tail end with its own heading, rather than being removed once the real 8d section was written | Deleted the vestigial duplicate section. Sections now run 8, 8b, 8c, 8d, 8e, 8h with no repeated numbers |
 
