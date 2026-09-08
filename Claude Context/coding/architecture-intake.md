@@ -34,7 +34,7 @@ summary: "Master architecture reference for [repo-name]. Plan docs WikiLink here
 # [Repo Name] ,  Architecture
 
 > Master architecture reference. Per-feature plan docs include an "Architecture Context" section that WikiLinks back to specific sub-sections here.
-> Update this doc whenever a feature adds, removes, or modifies any infrastructure resource (per [[scoping-phased-delivery]] Section 8d wave-issue checklist).
+> Update this doc whenever a feature adds, removes, or modifies any infrastructure resource (per [[scoping-phased-delivery]] Section 8e wave-issue checklist).
 
 ## Compute
 ...
