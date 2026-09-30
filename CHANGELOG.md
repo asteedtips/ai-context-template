@@ -4,6 +4,13 @@ Track what changed and when, so the agent can scan one file at session start to 
 
 ---
 
+## 2026-09-30
+
+**`writing/banned-writing-styles.md` brought current, gate helpers added.**
+
+- Synced the rules file from the April 2026 version to the current one: the July emerging-tells pass, the August Section 3 enforcement labels and per-document triad gate, and the September 60-day audit (genuinely, reframe variants, mannered prose, free-lunch claims, short-form triad gate, outbound-field scan). The April copy also carried literal em dashes, which its own rules ban.
+- Added `Claude Context/helpers/doc_banned_grep.py` (vocabulary, phrase, and dash gate) and `Claude Context/helpers/triad_scan.py` (rule-of-three density gate). Run both on any authored prose before it ships.
+
 ## 2026-03-13
 
 **Major restructure: subfolder organization and new files.**
