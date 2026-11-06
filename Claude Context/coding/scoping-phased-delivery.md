@@ -47,7 +47,7 @@ Every project is broken into ordered phases. Phases are about dependency orderin
 - Each phase produces something testable or reviewable. "Set up the project" is not a phase by itself unless the project setup itself needs review.
 - Phases are ordered by dependency. Data model before service layer. Service layer before API layer. API layer before UI.
 - Each phase lists the files to create or modify. This is the "what changes" list that makes code review possible.
-- **SSDT publish and EF Core Power Tools reverse-engineer are explicit gated steps** in any phase that introduces or modifies a database schema. Call them out as their own line items in the phase plan.
+- **SSDT publish and the hand-maintained EF entity update (with its parity test) are explicit gated steps** in any phase that introduces or modifies a database schema. See `coding-database.md` Section 4.4: entities are updated by hand, not regenerated with EF Core Power Tools. Call them out as their own line items in the phase plan.
 - **UI mockup conformance is a three-step hard gate** for every phase that creates or modifies [YOUR-UI-PAGES]. The phase plan must include: (1) Extract component spec from mockup as the first item, (2) Verify against mockup as the second-to-last item, and (3) CI verification as the last item. See scoping-ui-mockups.md and coding-blazor-ui.md Section 8.4.
 
 ### Plan doc size and structure

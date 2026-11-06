@@ -28,7 +28,7 @@ tags: [coding, moc, index]
 
 ## Database & EF Core
 
-**`coding-database.md`** — `IDbContextFactory<T>` lifecycle (not injected DbContext), [YourProject] base class pattern (`[YourBaseRepository]`, `[YourBaseCrudService]`), schema organization, stored procedures, SSDT-first workflow (TIPS standard: define in SQL, publish, reverse-engineer), temporal table config (shadow properties in EF Core 9+), new entity configuration checklist, database-defaulted values. **Read when:** creating entities, writing repositories, modifying schema, working with temporal tables, configuring EF Core.
+**`coding-database.md`**: `IDbContextFactory<T>` lifecycle (not injected DbContext), [YourProject] base class pattern (`[YourBaseRepository]`, `[YourBaseCrudService]`), schema organization, stored procedures, SSDT-first workflow (define in SQL, publish, hand-update the entity), temporal table config (shadow properties in EF Core 9+), new entity configuration checklist, database-defaulted values. **Read when:** creating entities, writing repositories, modifying schema, working with temporal tables, configuring EF Core.
 
 ## Security
 
